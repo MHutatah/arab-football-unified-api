@@ -1,10 +1,17 @@
 # Kooora API — Sprint 1: Foundation (Phase 1)
 
 **Sprint:** 01 · **Two weeks** · Drafted Jul 25, 2026
+**Initiative:** v0.1.0 Foundation · **Backlog (epics/stories):** `docs/product/BACKLOG.md`
 **Requirements:** `docs/product/PRD.md` (FR-1…FR-17) · **Roadmap:** `docs/product/ROADMAP.md`
 **Traceability:** `docs/requirements-traceability.md` (FR → code → tests)
+
 **Branch model:** every item ships on its own branch → PR → CI green → merge to `main`
 **Repo:** `MHutatah/kooora-api` — public, MIT code / ODbL data
+
+> This sprint executes **Initiative v0.1.0** — 5 epics, 20 stories. The waved
+> backlog below is the *scheduling* view; the epic/story tree with user stories
+> and per-story acceptance criteria lives in `BACKLOG.md` and in GitHub issues
+> (`python scripts/seed_issues.py`). The `K-NN` ids map 1:1 onto story ids.
 
 ---
 
@@ -55,43 +62,43 @@ does not close with a known namesake collision.
 Sizes: S ≈ ≤½ day, M ≈ 1 day, L ≈ 1.5–2 days. Sequencing respects dependencies (→).
 
 ### Wave 0 — The spine (days 1–4) — BLOCKS EVERYTHING
-| # | Item | FRs | Owner | Size | Status |
-|---|---|---|---|---|---|
-| K-01 | Repo scaffold: package layout, `pyproject`, MIT + ODbL, CI, Makefile | FR-17 | Tech Lead | S | ✅ done |
-| K-02 | `schema.sql` — entities, aliases, matches, appearances, team_seasons, transfers, honours, facts, source_runs, snapshot_meta | FR-1, FR-2, FR-6, FR-7, FR-9 | Tech Lead | M | ✅ done |
-| K-03 | `normalize.py` — Arabic folding, Latin transliteration, fused-article strip, `xkey()` cross-script skeleton | FR-3 | Identity | M | ✅ done |
-| K-04 | `resolver.py` — provider-id → name → cross-script → fuzzy → provisional; alias learning | FR-3, FR-4, FR-5 | Identity | L | ✅ done |
-| K-05 | `store/db.py` — SQLite store implementing the resolver interface + review queue | FR-1, FR-4 | Tech Lead | M | ✅ done |
-| K-06 | Adversarial identity suite (namesakes, scripts, provisional) | FR-3, FR-4 | QA | M | ✅ 9 passing |
+| # | Story | Item | FRs | Owner | Size | Status |
+|---|---|---|---|---|---|---|
+| K-01 | — | Repo scaffold: package layout, `pyproject`, MIT + ODbL, CI, Makefile | FR-17 | Tech Lead | S | ✅ done |
+| K-02 | S1.1.1 | `schema.sql` — entities, aliases, matches, appearances, team_seasons, transfers, honours, facts, source_runs, snapshot_meta | FR-1, FR-2, FR-6, FR-7, FR-9 | Tech Lead | M | ✅ done |
+| K-03 | S1.1.2 | `normalize.py` — Arabic folding, Latin transliteration, fused-article strip, `xkey()` cross-script skeleton | FR-3 | Identity | M | ✅ done |
+| K-04 | S1.1.3 | `resolver.py` — provider-id → name → cross-script → fuzzy → provisional; alias learning | FR-3, FR-4, FR-5 | Identity | L | ✅ done |
+| K-05 | S1.1.4 | `store/db.py` — SQLite store implementing the resolver interface + review queue | FR-1, FR-4 | Tech Lead | M | ✅ done |
+| K-06 | S1.1.5 | Adversarial identity suite (namesakes, scripts, provisional) | FR-3, FR-4 | QA | M | ✅ 9 passing |
 
 **Exit gate (day 4):** acceptance items 1–5 pass; **FR-1…FR-5 ✅ in the traceability matrix**; CI green on `main`.
 
 ### Wave 1 — First real collector (days 4–7)
-| # | Item | FRs | Owner | Size |
-|---|---|---|---|---|
-| K-07 | Collector base: interface, per-source rate budget, `source_runs` writes, graceful-empty contract | FR-11, FR-12 | Data Eng | M |
-| K-08 | 365Scores adapter — fixtures/results via `competitions=` + date window (Saudi id **649**) | FR-11 | Data Eng | M |
-| K-09 | Ingest pipeline: raw record → resolver → `matches` upsert (forward-only status) | FR-6, FR-10 | Data Eng + Tech Lead | M |
-| K-10 | Lineups → `appearances` rows (`/web/game/?gameId=&withLineups=true`, `members[]`) | FR-7 | Data Eng | M |
-| K-11 | Competition + season seeding for the Saudi league (entities for clubs from `/standings`) | FR-1, FR-2 | Identity | S |
+| # | Story | Item | FRs | Owner | Size |
+|---|---|---|---|---|---|
+| K-07 | S1.2.1 | Collector base: interface, per-source rate budget, `source_runs` writes, graceful-empty contract | FR-11, FR-12 | Data Eng | M |
+| K-08 | S1.2.2 | 365Scores adapter — fixtures/results via `competitions=` + date window (Saudi id **649**) | FR-11 | Data Eng | M |
+| K-09 | S1.2.3 | Ingest pipeline: raw record → resolver → `matches` upsert (forward-only status) | FR-6, FR-10 | Data Eng + Tech Lead | M |
+| K-10 | S1.3.1 | Lineups → `appearances` rows (`/web/game/?gameId=&withLineups=true`, `members[]`) | FR-7 | Data Eng | M |
+| K-11 | S1.2.4 | Competition + season seeding for the Saudi league (entities for clubs from `/standings`) | FR-1, FR-2 | Identity | S |
 
 ### Wave 2 — Derivation + read surface (days 7–10)
-| # | Item | FRs | Owner | Size |
-|---|---|---|---|---|
-| K-12 | `derive.form(team, n)` — last-N results computed from `matches` | FR-8 | Tech Lead | S |
-| K-13 | `derive.h2h(a, b)` — past meetings + W/D/L record from `matches` | FR-8 | Tech Lead | S |
-| K-14 | `derive.squad(team, season)` + `derive.career(player)` from `appearances` | FR-8 | Tech Lead | M |
-| K-15 | Read API skeleton (FastAPI): `/v1/search`, `/v1/teams/{id}`, `/v1/matches`, `/v1/h2h` | FR-16 | API Eng | L |
-| K-16 | Bilingual response shape + `?lang=ar\|en` display selection | FR-2, FR-16 | API Eng | S |
+| # | Story | Item | FRs | Owner | Size |
+|---|---|---|---|---|---|
+| K-12 | S1.3.2 | `derive.form(team, n)` — last-N results computed from `matches` | FR-8 | Tech Lead | S |
+| K-13 | S1.3.3 | `derive.h2h(a, b)` — past meetings + W/D/L record from `matches` | FR-8 | Tech Lead | S |
+| K-14 | S1.3.4 | `derive.squad(team, season)` + `derive.career(player)` from `appearances` | FR-8 | Tech Lead | M |
+| K-15 | S1.4.1 | Read API skeleton (FastAPI): `/v1/search`, `/v1/teams/{id}`, `/v1/matches`, `/v1/h2h` | FR-16 | API Eng | L |
+| K-16 | S1.4.2 | Bilingual response shape + `?lang=ar\|en` display selection | FR-2, FR-16 | API Eng | S |
 
 ### Wave 3 — Snapshot + hardening (days 10–12)
-| # | Item | FRs | Owner | Size |
-|---|---|---|---|---|
-| K-17 | `make snapshot` — export SQLite, stamp `snapshot_meta` (version, generated_at, license, counts) | FR-15 | Data Eng | M |
-| K-18 | Snapshot round-trip test — fresh process, identical answers | FR-15 | QA | S |
-| K-19 | Review-queue CLI: list provisional entities, merge into canonical, record the alias | FR-4, FR-5 | Identity | M |
-| K-20 | README quickstart verified on a clean clone; `docs/data-dictionary.md` | FR-17 | PO + Tech Lead | S |
-| K-21 | Ops: cron layout + monthly snapshot workflow **stub** (wired for real in Sprint 3) | FR-15 | Data Eng | S |
+| # | Story | Item | FRs | Owner | Size |
+|---|---|---|---|---|---|
+| K-17 | S1.5.1 | `make snapshot` — export SQLite, stamp `snapshot_meta` (version, generated_at, license, counts) | FR-15 | Data Eng | M |
+| K-18 | S1.5.2 | Snapshot round-trip test — fresh process, identical answers | FR-15 | QA | S |
+| K-19 | S1.1.6 | Review-queue CLI: list provisional entities, merge into canonical, record the alias | FR-4, FR-5 | Identity | M |
+| K-20 | S1.5.3 | README quickstart verified on a clean clone; `docs/data-dictionary.md` | FR-17 | PO + Tech Lead | S |
+| K-21 | S1.5.4 | Ops: cron layout + monthly snapshot workflow **stub** (wired for real in Sprint 3) | FR-15 | Data Eng | S |
 
 ### Sequencing summary
 `K-01→K-02→{K-03,K-05}→K-04→K-06` **[gate]** →
