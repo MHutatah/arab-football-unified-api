@@ -1,4 +1,4 @@
-# Kooora API — Product Requirements Document
+# Arab Football Unified API — Product Requirements Document
 
 **Status:** v1.0 · decisions locked Jul 25, 2026
 **Design spec:** `docs/SPEC.md` · **Roadmap:** `ROADMAP.md` · **Traceability:** `../requirements-traceability.md`
@@ -47,6 +47,7 @@ app API did); an open, stored, redistributable dataset doesn't.
 | "The same club has five spellings across two scripts" | **Language-neutral canonical id** — every spelling and provider id is an alias | ✅ built |
 | "'Al Hilal' returns a club from another country" | **Scoped resolution + provisional entities** — never a silent wrong match | ✅ built |
 | "No API has Saudi/Gulf history worth using" | **All-time archive** — matches, seasons, honours, careers | Sprint 2 |
+| "Paging an API for 20 years of history takes forever" | **Bulk open-dataset backfill** — license-clean dumps (Kaggle) for national teams, appearances and transfers | Sprint 2 |
 | "Careers and H2H aren't exposed by any feed" | **Derived from an appearance spine** — computed, not fetched | Sprint 1–2 |
 | "One provider goes stale and my app breaks" | **Multi-source collectors, fail-soft**, with the store as the truth | Sprint 1/3 |
 | "Transfers and injuries only exist in Arabic news" | **LLM fact extraction** (Arabic + English) with provenance | Sprint 4 |
@@ -76,6 +77,11 @@ app API did); an open, stored, redistributable dataset doesn't.
 - **FR-11** Ingest from multiple sources behind one collector interface; any source
   may be absent, keyless, or failing without stopping the pipeline.
 - **FR-12** Record every collector run (`source_runs`) with counts and errors.
+- **FR-18** Ingest **bulk open datasets** (Kaggle and equivalents) as a one-shot
+  historical backfill, through the same resolver as live records — and **only when
+  the dataset's license permits redistribution** (CC0 / ODbL / CC-BY / CC-BY-SA).
+  Record the dataset id, version and license with the imported rows. See
+  [`../sources.md`](../sources.md).
 
 ### Enrichment
 - **FR-13** Extract typed facts (transfer, injury, suspension) from Arabic and
@@ -118,5 +124,9 @@ app API did); an open, stored, redistributable dataset doesn't.
 - **No live network in the test suite** — collectors are tested against canned payloads.
 - **Redistribution is a gray area** — publish *facts*, not verbatim source text;
   attribute sources; honor takedowns.
+- **License gate on every source.** Because we republish an open database, a source
+  whose license is unstated or non-commercial can never enter the snapshot — it may
+  only be used privately to cross-check. The register in `docs/sources.md` is the
+  authority, and no dataset is ingested before its license is recorded there.
 - **Single maintainer.** Scope must survive being worked on part-time: automation
   over manual curation, review queue over exhaustive hand-checking.

@@ -1,4 +1,4 @@
-# Kooora API
+# Arab Football Unified API
 
 An open football **data engine for the Arab world** — the region every commercial
 API covers worst.
@@ -7,8 +7,8 @@ This is **not a hosted API**. It's an MIT-licensed project plus a monthly,
 downloadable database: clone the repo, pull the latest snapshot, and build.
 
 ```bash
-git clone https://github.com/MHutatah/kooora-api
-cd kooora-api
+git clone https://github.com/MHutatah/arab-football-unified-api
+cd arab-football-unified-api
 make pull-db        # latest snapshot (SQLite, ODbL)
 make serve          # read API on :8100  — or just open the .db yourself
 ```

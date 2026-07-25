@@ -1,7 +1,7 @@
-# Kooora API — consumer targets are the first three; the rest are producer-side.
+# Arab Football Unified API — consumer targets are the first three; the rest are producer-side.
 .PHONY: help install test lint pull-db serve init-db collect-saudi snapshot review
 
-DB ?= kooora.db
+DB ?= arabfootball.db
 
 help:
 	@echo "Consumer:"
@@ -22,10 +22,10 @@ test:
 	pytest -q
 
 lint:
-	ruff check kooora tests
+	ruff check arabfootball tests
 
 init-db:
-	python -c "from kooora.store.db import Store; Store('$(DB)').close(); print('created $(DB)')"
+	python -c "from arabfootball.store.db import Store; Store('$(DB)').close(); print('created $(DB)')"
 
 # Consumer entry point: fetch the latest monthly snapshot from GitHub Releases.
 pull-db:
@@ -33,13 +33,13 @@ pull-db:
 	@python scripts/pull_db.py --out $(DB)
 
 serve:
-	uvicorn kooora.api.main:app --host 0.0.0.0 --port 8100
+	uvicorn arabfootball.api.main:app --host 0.0.0.0 --port 8100
 
 collect-saudi:
-	python -m kooora.collectors.run --competition saudi --db $(DB)
+	python -m arabfootball.collectors.run --competition saudi --db $(DB)
 
 snapshot:
 	python scripts/make_snapshot.py --db $(DB) --out dist/
 
 review:
-	python -m kooora.resolve.review --db $(DB)
+	python -m arabfootball.resolve.review --db $(DB)

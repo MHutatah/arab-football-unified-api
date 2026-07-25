@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from kooora.resolve.normalize import norm, xkey
+from arabfootball.resolve.normalize import norm, xkey
 
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 

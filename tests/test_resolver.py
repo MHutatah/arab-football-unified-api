@@ -1,9 +1,9 @@
 """Entity resolution — the bugs this project exists to prevent."""
 import pytest
 
-from kooora.resolve.normalize import norm, similarity
-from kooora.resolve.resolver import Resolver
-from kooora.store.db import Store
+from arabfootball.resolve.normalize import norm, similarity
+from arabfootball.resolve.resolver import Resolver
+from arabfootball.store.db import Store
 
 
 @pytest.fixture()
@@ -50,7 +50,7 @@ def test_same_club_across_providers_and_scripts_is_one_entity(resolver):
                          name="Al Hilal", country="SA")
     b = resolver.resolve(type="team", provider="espn", provider_id=929,
                          name="Al-Hilal", country="SA")          # different provider+spelling
-    c = resolver.resolve(type="team", provider="kooora", name="الهلال", country="SA")
+    c = resolver.resolve(type="team", provider="arabfootball", name="الهلال", country="SA")
     assert a.entity_id == b.entity_id == c.entity_id
 
 

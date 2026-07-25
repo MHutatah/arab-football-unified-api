@@ -1,6 +1,6 @@
 # Sprint plans
 
-The build sequence for Kooora API — the execution layer of the product docs.
+The build sequence for Arab Football Unified API — the execution layer of the product docs.
 
 | Layer | Document |
 |---|---|

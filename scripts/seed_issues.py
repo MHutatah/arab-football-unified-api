@@ -155,8 +155,8 @@ the error.
 - [x] Every provider id and spelling seen is learned as an alias
 
 **Key files / surfaces**
-- `kooora/store/schema.sql`, `kooora/resolve/normalize.py`,
-  `kooora/resolve/resolver.py`, `kooora/store/db.py`
+- `arabfootball/store/schema.sql`, `arabfootball/resolve/normalize.py`,
+  `arabfootball/resolve/resolver.py`, `arabfootball/store/db.py`
 
 **Dependencies** — none (root of the build)
 
@@ -241,7 +241,7 @@ upstream.
 - [ ] A finished match is never reverted by a stale feed
 
 **Key files / surfaces**
-- `kooora/collectors/{base,scores365,ingest,run}.py`
+- `arabfootball/collectors/{base,scores365,ingest,run}.py`
 
 **Dependencies** — Epic 1.1
 
@@ -307,7 +307,7 @@ store doesn't.
 - [ ] A player's career path is assembled purely from appearances + transfers
 
 **Key files / surfaces**
-- `kooora/collectors/lineups.py`, `kooora/derive/{form,h2h,squad,career}.py`
+- `arabfootball/collectors/lineups.py`, `arabfootball/derive/{form,h2h,squad,career}.py`
 
 **Dependencies** — Epic 1.2
 
@@ -362,7 +362,7 @@ construction.
 - [ ] Every entity response carries `name_ar` and `name_en`
 - [ ] Endpoints answer from the store only
 
-**Key files / surfaces** — `kooora/api/main.py`, `kooora/api/routes/`
+**Key files / surfaces** — `arabfootball/api/main.py`, `arabfootball/api/routes/`
 
 **Dependencies** — Epics 1.1–1.3
 
@@ -418,7 +418,7 @@ _An epic is a large body of work broken into stories._
             ("[STORY 1.5.1] Export a stamped snapshot",
              ["size:M", "p1-high", "epic:distribution"],
              "As a **data practitioner**, I want **the database to tell me what it is** so that **I can cite its version, date and license in my work**.",
-             ["`make snapshot` writes `dist/kooora-YYYY-MM.db`",
+             ["`make snapshot` writes `dist/arabfootball-YYYY-MM.db`",
               "`snapshot_meta` stamped: version, generated_at, license, coverage, counts",
               "Vacuumed/compact; no provider keys or internal-only rows"], False),
             ("[STORY 1.5.2] Snapshot round-trip test",

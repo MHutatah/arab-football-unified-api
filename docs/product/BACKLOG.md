@@ -1,4 +1,4 @@
-# Kooora API — Backlog (Theme → Initiative → Epic → Story)
+# Arab Football Unified API — Backlog (Theme → Initiative → Epic → Story)
 
 The Atlassian hierarchy used across MHutatah projects. This document is the
 **source** for the GitHub issues; `scripts/seed_issues.py` creates them from it.
@@ -127,10 +127,10 @@ derived fact downstream inherits the error.
 
 **Key files / surfaces**
 
-- `kooora/store/schema.sql`
-- `kooora/resolve/normalize.py`
-- `kooora/resolve/resolver.py`
-- `kooora/store/db.py`
+- `arabfootball/store/schema.sql`
+- `arabfootball/resolve/normalize.py`
+- `arabfootball/resolve/resolver.py`
+- `arabfootball/store/db.py`
 
 **Dependencies** — none (this is the root of the build)
 
@@ -268,8 +268,8 @@ any upstream.
 
 **Key files / surfaces**
 
-- `kooora/collectors/base.py`, `kooora/collectors/scores365.py`
-- `kooora/collectors/ingest.py`, `kooora/collectors/run.py`
+- `arabfootball/collectors/base.py`, `arabfootball/collectors/scores365.py`
+- `arabfootball/collectors/ingest.py`, `arabfootball/collectors/run.py`
 
 **Dependencies** — Epic 1.1 (resolution)
 
@@ -370,8 +370,8 @@ store doesn't.
 
 **Key files / surfaces**
 
-- `kooora/collectors/lineups.py`
-- `kooora/derive/` (`form.py`, `h2h.py`, `squad.py`, `career.py`)
+- `arabfootball/collectors/lineups.py`
+- `arabfootball/derive/` (`form.py`, `h2h.py`, `squad.py`, `career.py`)
 
 **Dependencies** — Epic 1.2 (matches must exist to derive from)
 
@@ -458,7 +458,7 @@ construction: both names always present, display language a caller's choice.
 - [ ] Every entity response carries `name_ar` and `name_en`
 - [ ] Endpoints answer from the store only
 
-**Key files / surfaces** — `kooora/api/main.py`, `kooora/api/routes/`
+**Key files / surfaces** — `arabfootball/api/main.py`, `arabfootball/api/routes/`
 
 **Dependencies** — Epics 1.1–1.3
 
@@ -536,7 +536,7 @@ dictionary, monthly-publish workflow **stub**
 
 **Acceptance criteria**
 
-- [ ] `make snapshot` writes `dist/kooora-YYYY-MM.db`
+- [ ] `make snapshot` writes `dist/arabfootball-YYYY-MM.db`
 - [ ] `snapshot_meta` stamped: version, generated_at, license (ODbL), coverage, per-table counts
 - [ ] Vacuumed/compact; no provider keys or internal-only rows included
 
@@ -581,3 +581,119 @@ dictionary, monthly-publish workflow **stub**
 - [ ] `.github/workflows/snapshot.yml` exists, manual-dispatch only
 - [ ] Documents the box-side cron + export → release flow
 - [ ] Does not publish anything until enabled in Initiative v0.3
+
+---
+
+# [INITIATIVE v0.2.0] All-time backfill *(next — scoped ahead)*
+
+`type:initiative` · `theme:arab-football-data` · `initiative:v0.2-backfill`
+
+Depth is the v1 headline. Only the epic that changes the Sprint-1 design is
+detailed here; the rest is scoped when Sprint 1 closes with real numbers.
+
+## [EPIC 2.1] Bulk open-dataset ingestion
+
+`type:epic` · `epic:collectors` · `size:L` · `p1-high` · `initiative:v0.2-backfill`
+**FRs:** FR-18, FR-6, FR-7, FR-9
+
+> **Parent initiative:** [INITIATIVE v0.2.0] All-time backfill
+
+## Epic
+
+Years of history arrive in one download. A license-clean bulk dataset (Kaggle and
+equivalents) backfills decades where paging a live API would take thousands of
+calls — **international results since 1872, a ready-made appearance spine, and a
+transfer archive**, all CC0 or ODbL. Bulk rows earn no shortcut: they pass through
+the same resolver as live records.
+
+**In scope**
+
+- A bulk-dataset collector class (download → CSV → resolver → store)
+- **License gating** — only CC0 / ODbL / CC-BY / CC-BY-SA are ingested; the
+  dataset id, version and license are recorded with the rows
+- Priority datasets (see `docs/sources.md`): international results (CC0),
+  Transfermarkt mirror `player-scores` (CC0), Egyptian league 2015–25 (ODbL),
+  global transfers 2010–26 (CC0)
+- Conflict handling: a dump never silently overwrites a live-sourced result
+
+**Out of scope**
+
+- Datasets with unstated licenses (e.g. `rossi14/saudi-pro-league-transfers`) —
+  private cross-checking only, never redistribution
+- Scraping Transfermarkt directly while a CC0 mirror exists
+
+**Epic acceptance criteria**
+
+- [ ] A dataset without a recorded, redistributable license **cannot** be ingested
+- [ ] Imported rows carry dataset id + version + license into the snapshot
+- [ ] Every imported club/player resolves through the resolver, no direct id reuse
+- [ ] Arab-league coverage of each dataset is measured and recorded before it's trusted
+
+**Key files / surfaces**
+
+- `arabfootball/collectors/bulk.py`, `arabfootball/collectors/kaggle.py`
+- `docs/sources.md` (the license register)
+
+**Dependencies** — Epics 1.1 (resolution), 1.2 (ingest pipeline)
+
+### Stories (4)
+
+#### [STORY 2.1.1] Bulk collector with a license gate — `size:M` `p1-high` `epic:collectors`
+
+> **Parent epic:** [EPIC 2.1]
+
+**User story**
+
+> As a **maintainer**, I want **the pipeline to refuse any dataset I haven't license-cleared** so that **the published snapshot can never contain data I'm not allowed to redistribute**.
+
+**Acceptance criteria**
+
+- [ ] A dataset is declared in `sources.md` with id, version and license before use
+- [ ] Ingest **aborts** on an unknown/NC license, with a clear error
+- [ ] Imported rows record dataset id, version and license
+- [ ] Kaggle candidates can be triaged via the unauthenticated API (`/api/v1/datasets/list?search=`)
+
+#### [STORY 2.1.2] International results backfill (CC0) — `size:M` `p1-high` `epic:collectors`
+
+> **Parent epic:** [EPIC 2.1]
+
+**User story**
+
+> As a **data practitioner**, I want **every Arab national team's match history back to its first international** so that **I can analyze Gulf Cup, Arab Cup and Asian Cup history no API exposes**.
+
+**Acceptance criteria**
+
+- [ ] `martj42/international-football-results-…` (CC0) imported
+- [ ] Filtered to Arab national teams + their opponents; competitions resolved as entities
+- [ ] Country names in the dump resolve to canonical national-team entities
+- [ ] Provisional rate measured; duplicates against live-sourced matches deduped
+
+#### [STORY 2.1.3] Appearance-spine backfill from the Transfermarkt mirror — `size:L` `p1-high` `epic:collectors`
+
+> **Parent epic:** [EPIC 2.1]
+
+**User story**
+
+> As an **app developer**, I want **player careers and squads to exist from day one of the archive** so that **profiles are deep immediately instead of filling in slowly as new matches are played**.
+
+**Acceptance criteria**
+
+- [ ] `davidcariboo/player-scores` (CC0) imported: players, clubs, games, appearances
+- [ ] **Arab-league coverage measured and reported first** — if it skews European, scope drops to Arab players' career stops abroad
+- [ ] Appearances land in the existing `appearances` table so derivation is unchanged
+- [ ] Transfermarkt ids stored as aliases, never as canonical ids
+
+#### [STORY 2.1.4] Transfer archive + conflict policy — `size:M` `p2-medium` `epic:collectors`
+
+> **Parent epic:** [EPIC 2.1]
+
+**User story**
+
+> As a **maintainer**, I want **a dump to flag disagreements instead of overwriting live data** so that **a stale CSV can't quietly rewrite a result I already verified**.
+
+**Acceptance criteria**
+
+- [ ] Global transfers dataset (CC0) imported into `transfers`
+- [ ] On conflict with a live-sourced row, the live value wins and the conflict is recorded
+- [ ] Duplicate transfers across datasets are deduped by (player, date, from, to)
+- [ ] Egyptian league dataset (ODbL) imported with attribution preserved

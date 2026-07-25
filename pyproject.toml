@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kooora-api"
+name = "arab-football-unified-api"
 version = "0.1.0"
 description = "An open football data engine for the Arab world — code (MIT) + monthly database snapshots (ODbL)"
 readme = "README.md"
@@ -19,13 +19,13 @@ dependencies = [
 dev = ["pytest>=8.0", "ruff>=0.4"]
 
 [project.urls]
-Homepage = "https://github.com/MHutatah/kooora-api"
+Homepage = "https://github.com/MHutatah/arab-football-unified-api"
 
 [tool.setuptools.packages.find]
-include = ["kooora*"]
+include = ["arabfootball*"]
 
 [tool.setuptools.package-data]
-"kooora.store" = ["*.sql"]
+"arabfootball.store" = ["*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

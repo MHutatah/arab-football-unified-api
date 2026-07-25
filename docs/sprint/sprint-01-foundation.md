@@ -1,4 +1,4 @@
-# Kooora API — Sprint 1: Foundation (Phase 1)
+# Arab Football Unified API — Sprint 1: Foundation (Phase 1)
 
 **Sprint:** 01 · **Two weeks** · Drafted Jul 25, 2026
 **Initiative:** v0.1.0 Foundation · **Backlog (epics/stories):** `docs/product/BACKLOG.md`
@@ -6,7 +6,7 @@
 **Traceability:** `docs/requirements-traceability.md` (FR → code → tests)
 
 **Branch model:** every item ships on its own branch → PR → CI green → merge to `main`
-**Repo:** `MHutatah/kooora-api` — public, MIT code / ODbL data
+**Repo:** `MHutatah/arab-football-unified-api` — public, MIT code / ODbL data
 
 > This sprint executes **Initiative v0.1.0** — 5 epics, 20 stories. The waved
 > backlog below is the *scheduling* view; the epic/story tree with user stories

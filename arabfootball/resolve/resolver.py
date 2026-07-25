@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from kooora.resolve.normalize import norm, script_of, similarity, xkey
+from arabfootball.resolve.normalize import norm, script_of, similarity, xkey
 
 FUZZY_THRESHOLD = 0.86      # below this we create a provisional entity instead
 FUZZY_MARGIN = 0.05         # best must beat runner-up by this, else ambiguous

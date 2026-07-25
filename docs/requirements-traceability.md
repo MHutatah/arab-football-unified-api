@@ -1,4 +1,4 @@
-# Kooora API — Requirements Traceability Matrix
+# Arab Football Unified API — Requirements Traceability Matrix
 
 Links each requirement to the code that implements it and the tests that verify it.
 Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
@@ -27,6 +27,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | FR-15 | Monthly stamped SQLite snapshot | `schema.sql::snapshot_meta`, `scripts/make_snapshot.py` _(planned)_ | _(K-17, K-18 round-trip)_ | 1 · K-17/K-18 | 🟡 schema only |
 | FR-16 | Bundled bilingual read API `/v1` | `api/` _(planned)_ | _(K-15, K-16)_ | 1 · K-15/K-16 | ⬜ |
 | FR-17 | MIT code · ODbL data · attribution · takedown | `LICENSE`, `LICENSE-DATA`, `README.md` | _(manual review)_ | 1 · K-01 | ✅ |
+| FR-18 | Bulk open-dataset ingestion with a license gate | `collectors/bulk.py`, `collectors/kaggle.py` _(planned)_, `docs/sources.md` | _(Sprint 2 — S2.1.1 abort-on-unknown-license)_ | 2 · E2.1 | ⬜ |
 
 > **Sprint 1 gate:** FR-1…FR-5 must be ✅ before any depth work starts. A wrong
 > entity id silently corrupts every derived fact built on top of it.
@@ -41,6 +42,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | NFR-failsoft | Any single source down ⇒ pipeline still completes | always | Collector contract tests (K-07) | ⬜ |
 | NFR-portable | Snapshot opens with stdlib `sqlite3`, no extensions | always | Round-trip test (K-18) | ⬜ |
 | NFR-onboard | Clone → first query | < 5 min | Fresh-clone walkthrough (K-20) | ⬜ |
+| NFR-license | Rows in a snapshot from a non-redistributable source | **0** | License gate aborts ingest (S2.1.1); `docs/sources.md` register | ⬜ |
 
 ## Pain-point → requirement rollup
 
@@ -53,3 +55,4 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | One provider goes stale and breaks the app | FR-10, FR-11, FR-12 |
 | Transfers and injuries only in Arabic news | FR-13, FR-14 |
 | Don't want to depend on someone's uptime | FR-15, FR-16, FR-17 |
+| Paging an API for 20 years of history takes forever | FR-18 |

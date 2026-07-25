@@ -1,4 +1,4 @@
-# Kooora API — Roadmap & Scope Map
+# Arab Football Unified API — Roadmap & Scope Map
 
 Phased delivery of the PRD. Requirement ids (**FR-N**) come from [`PRD.md`](./PRD.md);
 sprint task ids (**K-NN**) from [`../sprint/`](../sprint/).
@@ -24,11 +24,15 @@ everything derivable offline from the store.
 ## Phase 2 — All-time backfill (Sprint 2) · **the v1 headline**
 
 Depth, competition by competition — Saudi and the Gulf first, then outward.
+**Bulk open datasets come first**: a license-clean dump delivers years of history in
+one download, where paging an API for the same span takes thousands of calls.
 
+- **Bulk dataset ingestion** — CC0/ODbL Kaggle dumps for international results,
+  appearances and transfers (FR-18); license gate enforced (`docs/sources.md`)
 - Historical seasons via 365Scores + API-Football history (FR-6, FR-9)
 - `team_seasons`, `honours`, `transfers` populated (FR-9)
 - Careers and squads derived across the full archive (FR-8)
-- Wikipedia (ar/en) + Transfermarkt archival collectors (FR-11)
+- Wikipedia (ar/en) archival collector, LLM-normalized (FR-11)
 
 **Exit:** a club profile matches or beats kooora.com depth for the seeded countries.
 

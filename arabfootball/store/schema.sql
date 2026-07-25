@@ -1,4 +1,4 @@
--- Kooora API — canonical schema.
+-- Arab Football Unified API — canonical schema.
 --
 -- Portable across Postgres (producer) and SQLite (published snapshot): no
 -- vendor-specific types, TEXT ids, ISO-8601 date strings.
