@@ -1,7 +1,17 @@
 # Sprint plans
 
-The build sequence for Kooora API. Design decisions are locked in `docs/SPEC.md`;
-these documents turn them into work.
+The build sequence for Kooora API — the execution layer of the product docs.
+
+| Layer | Document |
+|---|---|
+| **Why & what** — problem, personas, pain→feature, **FR-1…FR-17** | [`../product/PRD.md`](../product/PRD.md) |
+| **When** — phased scope map, FRs per phase | [`../product/ROADMAP.md`](../product/ROADMAP.md) |
+| **Proof** — FR → implementation → tests → status | [`../requirements-traceability.md`](../requirements-traceability.md) |
+| **How** — sprint goal, waved backlog, risks, DoD | this directory |
+| **Design** — architecture decisions | [`../SPEC.md`](../SPEC.md) |
+
+Every sprint item carries the FRs it satisfies, and closing an item updates the
+traceability matrix — so requirements never drift from the code.
 
 | Sprint | Theme | Ships | Plan |
 |---|---|---|---|
