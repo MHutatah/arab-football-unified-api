@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: lint & test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check kooora tests
+
+      # The suite must never touch the network: collectors are tested against
+      # canned payloads, so CI stays deterministic and fast.
+      - name: Test
+        run: pytest -q
+
+      - name: Schema applies cleanly
+        run: python -c "from kooora.store.db import Store; s=Store(); print('schema OK'); s.close()"
