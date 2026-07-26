@@ -91,7 +91,7 @@ def test_lineup_members_become_idempotent_appearances_scoped_by_club(store):
         assert collector.collect(game_id=99, match_id="match:1") == 2
 
     assert requests[0].url.path == "/web/game/"
-    assert requests[0].url.params == {"gameId": "99", "withLineups": "true"}
+    assert dict(requests[0].url.params) == {"gameId": "99", "withLineups": "true"}
     rows = store.conn.execute(
         "SELECT * FROM appearances ORDER BY team_entity"
     ).fetchall()
