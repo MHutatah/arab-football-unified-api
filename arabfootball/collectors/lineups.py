@@ -145,6 +145,12 @@ class LineupCollector:
     def _started(member: Mapping[str, Any]) -> int | None:
         value = _first(member, "started", "isStarter", "starting")
         if value is not None:
+            if isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in {"true", "1"}:
+                    return 1
+                if normalized in {"false", "0"}:
+                    return 0
             return int(bool(value))
         status = member.get("status")
         if isinstance(status, str):

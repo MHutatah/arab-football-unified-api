@@ -121,3 +121,20 @@ def test_lineup_requires_an_existing_match(store):
     collector = LineupCollector(store)
     with pytest.raises(ValueError, match="unknown match"):
         collector.collect(game_id=99, match_id="missing")
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, 1),
+        (False, 0),
+        (1, 1),
+        (0, 0),
+        ("true", 1),
+        ("false", 0),
+        ("1", 1),
+        ("0", 0),
+    ],
+)
+def test_started_parses_boolean_representations(value, expected):
+    assert LineupCollector._started({"isStarter": value}) == expected
