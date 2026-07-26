@@ -96,3 +96,9 @@ class Store:
         """Provisional entities awaiting a human decision — never hidden."""
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM entities WHERE provisional=1 ORDER BY created_at")]
+
+    def form(self, team: str, n: int = 5) -> dict:
+        """Recent results derived from this store, with no live fetch."""
+        from arabfootball.derive.form import form
+
+        return form(self, team, n)
