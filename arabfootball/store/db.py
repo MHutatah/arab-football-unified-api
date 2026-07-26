@@ -96,3 +96,38 @@ class Store:
         """Provisional entities awaiting a human decision — never hidden."""
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM entities WHERE provisional=1 ORDER BY created_at")]
+
+    # ── archive writes ──────────────────────────────────────────────────────
+    def match(self, match_id: str) -> dict | None:
+        row = self.conn.execute("SELECT * FROM matches WHERE id=?", (match_id,)).fetchone()
+        return dict(row) if row else None
+
+    def upsert_appearance(self, *, player_entity: str, match_id: str, team_entity: str,
+                          started: int | None = None, minutes: int | None = None,
+                          goals: int | None = None, assists: int | None = None,
+                          yellow: int | None = None, red: int | None = None) -> None:
+        """Store the latest lineup facts for one player and match.
+
+        Lineups are commonly re-fetched while a match is live.  Updating the
+        existing row makes those passes both idempotent and able to fill in
+        final minutes/cards once they become available.
+        """
+        self.conn.execute(
+            """
+            INSERT INTO appearances
+                (player_entity, match_id, team_entity, started, minutes,
+                 goals, assists, yellow, red)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(player_entity, match_id) DO UPDATE SET
+                team_entity=excluded.team_entity,
+                started=COALESCE(excluded.started, appearances.started),
+                minutes=COALESCE(excluded.minutes, appearances.minutes),
+                goals=COALESCE(excluded.goals, appearances.goals),
+                assists=COALESCE(excluded.assists, appearances.assists),
+                yellow=COALESCE(excluded.yellow, appearances.yellow),
+                red=COALESCE(excluded.red, appearances.red)
+            """,
+            (player_entity, match_id, team_entity, started, minutes, goals,
+             assists, yellow, red),
+        )
+        self.conn.commit()
