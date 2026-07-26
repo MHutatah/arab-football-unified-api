@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from arabfootball.resolve.normalize import norm, xkey
@@ -17,7 +17,7 @@ SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 class Store:
@@ -49,10 +49,11 @@ class Store:
             names = [r["name_ar"] or "", r["name_en"] or ""]
             names += [a["name_variant"] for a in self.conn.execute(
                 "SELECT name_variant FROM aliases WHERE entity_id=?", (r["id"],))]
-            if any(norm(n) == key for n in names if n):
-                out.append(r["id"])
-            elif cross_script and len(cross_script) >= 3 and any(
-                    xkey(n) == cross_script for n in names if n):
+            same_script = any(norm(n) == key for n in names if n)
+            # cross-script needs a long-enough skeleton: short ones collide easily
+            cross = (bool(cross_script) and len(cross_script) >= 3
+                     and any(xkey(n) == cross_script for n in names if n))
+            if same_script or cross:
                 out.append(r["id"])
         return out
 
