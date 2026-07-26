@@ -609,22 +609,23 @@ the same resolver as live records.
 **In scope**
 
 - A bulk-dataset collector class (download → CSV → resolver → store)
-- **License gating** — only CC0 / ODbL / CC-BY / CC-BY-SA are ingested; the
-  dataset id, version and license are recorded with the rows
+- **Source tiering** — Tier A (CC0/ODbL/CC-BY) is published; **Tier B**
+  (unstated licence) is ingested for discovery/cross-checking but excluded from
+  exports until corroborated; Tier C (NC) is refused
 - Priority datasets (see `docs/sources.md`): international results (CC0),
   Transfermarkt mirror `player-scores` (CC0), Egyptian league 2015–25 (ODbL),
-  global transfers 2010–26 (CC0)
+  global transfers 2010–26 (CC0), **Saudi Pro League transfers (Tier B)**
 - Conflict handling: a dump never silently overwrites a live-sourced result
 
 **Out of scope**
 
-- Datasets with unstated licenses (e.g. `rossi14/saudi-pro-league-transfers`) —
-  private cross-checking only, never redistribution
+- Publishing any Tier-B row that no independent source confirms
 - Scraping Transfermarkt directly while a CC0 mirror exists
 
 **Epic acceptance criteria**
 
-- [ ] A dataset without a recorded, redistributable license **cannot** be ingested
+- [ ] A dataset with no recorded tier **cannot** be ingested
+- [ ] **No Tier-B row ever appears in an exported snapshot** unless corroborated
 - [ ] Imported rows carry dataset id + version + license into the snapshot
 - [ ] Every imported club/player resolves through the resolver, no direct id reuse
 - [ ] Arab-league coverage of each dataset is measured and recorded before it's trusted
@@ -638,20 +639,21 @@ the same resolver as live records.
 
 ### Stories (4)
 
-#### [STORY 2.1.1] Bulk collector with a license gate — `size:M` `p1-high` `epic:collectors`
+#### [STORY 2.1.1] Bulk collector with source tiering — `size:M` `p1-high` `epic:collectors`
 
 > **Parent epic:** [EPIC 2.1]
 
 **User story**
 
-> As a **maintainer**, I want **the pipeline to refuse any dataset I haven't license-cleared** so that **the published snapshot can never contain data I'm not allowed to redistribute**.
+> As a **maintainer**, I want **unstated-licence data usable for cross-checking but never publishable** so that **I get the value of every dataset without redistributing one I have no right to**.
 
 **Acceptance criteria**
 
-- [ ] A dataset is declared in `sources.md` with id, version and license before use
-- [ ] Ingest **aborts** on an unknown/NC license, with a clear error
-- [ ] Imported rows record dataset id, version and license
-- [ ] Kaggle candidates can be triaged via the unauthenticated API (`/api/v1/datasets/list?search=`)
+- [ ] A dataset is declared in `sources.md` with id, version, licence and **tier** before use
+- [ ] Tier A ingests and exports; **Tier B ingests with `tier='reference'` and is filtered out of every export**; Tier C aborts with a clear error
+- [ ] Imported rows record dataset id, version and licence
+- [ ] A test asserts a reference row cannot appear in an exported snapshot
+- [ ] Kaggle candidates triaged via the unauthenticated API (`/api/v1/datasets/list?search=`)
 
 #### [STORY 2.1.2] International results backfill (CC0) — `size:M` `p1-high` `epic:collectors`
 
@@ -697,3 +699,21 @@ the same resolver as live records.
 - [ ] On conflict with a live-sourced row, the live value wins and the conflict is recorded
 - [ ] Duplicate transfers across datasets are deduped by (player, date, from, to)
 - [ ] Egyptian league dataset (ODbL) imported with attribution preserved
+
+#### [STORY 2.1.5] Saudi transfer corroboration (Tier B) — `size:M` `p1-high` `epic:collectors`
+
+> **Parent epic:** [EPIC 2.1]
+
+**User story**
+
+> As a **data practitioner**, I want **25 years of Saudi transfer history that's been independently verified** so that **I can trust the numbers on the league this project exists for**.
+
+**Acceptance criteria**
+
+- [ ] `rossi14/saudi-pro-league-transfers` imported with `tier='reference'`
+- [ ] Every row resolves players and both clubs through the resolver
+- [ ] A corroboration pass matches each reference transfer against the CC0 global
+      transfers set / live sources; matches are promoted with `corroborated_by` set
+- [ ] Uncorroborated rows stay reference-only and are reported as a coverage gap to chase
+- [ ] The author is asked to relicense to CC0 (tracked here); if granted, the set is
+      promoted to Tier A wholesale and this story closes early

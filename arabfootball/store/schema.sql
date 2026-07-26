@@ -88,9 +88,17 @@ CREATE TABLE IF NOT EXISTS transfers (
     fee_eur       INTEGER,
     type          TEXT,                     -- permanent|loan|free|end_of_loan
     source        TEXT,
+    -- Licensing tier of the SOURCE this row came from (see docs/sources.md):
+    --   'publishable' = Tier A, exported in the snapshot
+    --   'reference'   = Tier B, unstated-licence source; kept for discovery and
+    --                   cross-checking, EXCLUDED from every export until an
+    --                   independent Tier-A/live source corroborates it
+    tier          TEXT NOT NULL DEFAULT 'publishable',
+    corroborated_by TEXT,                   -- the source that promoted a reference row
     confidence    REAL
 );
 CREATE INDEX IF NOT EXISTS idx_transfers_player ON transfers(player_entity);
+CREATE INDEX IF NOT EXISTS idx_transfers_tier ON transfers(tier);
 
 CREATE TABLE IF NOT EXISTS honours (
     entity_id      TEXT NOT NULL REFERENCES entities(id),

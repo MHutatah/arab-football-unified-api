@@ -78,9 +78,11 @@ app API did); an open, stored, redistributable dataset doesn't.
   may be absent, keyless, or failing without stopping the pipeline.
 - **FR-12** Record every collector run (`source_runs`) with counts and errors.
 - **FR-18** Ingest **bulk open datasets** (Kaggle and equivalents) as a one-shot
-  historical backfill, through the same resolver as live records — and **only when
-  the dataset's license permits redistribution** (CC0 / ODbL / CC-BY / CC-BY-SA).
-  Record the dataset id, version and license with the imported rows. See
+  historical backfill, through the same resolver as live records, **tiered by
+  licence**: Tier A (CC0/ODbL/CC-BY) is published; **Tier B (unstated licence) is
+  ingested for discovery and cross-checking but excluded from every export until an
+  independent source corroborates it**; Tier C (non-commercial) is refused. Record
+  the dataset id, version and licence with imported rows. See
   [`../sources.md`](../sources.md).
 
 ### Enrichment
