@@ -131,3 +131,9 @@ class Store:
              assists, yellow, red),
         )
         self.conn.commit()
+
+    def form(self, team: str, n: int = 5) -> dict:
+        """Recent results derived from this store, with no live fetch."""
+        from arabfootball.derive.form import form
+
+        return form(self, team, n)
