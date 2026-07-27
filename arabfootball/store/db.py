@@ -137,3 +137,15 @@ class Store:
         from arabfootball.derive.form import form
 
         return form(self, team, n)
+
+    def squad(self, team: str, season: str) -> list[dict]:
+        """Season squad derived from this store, with no live fetch."""
+        from arabfootball.derive.careers import squad
+
+        return squad(self, team, season)
+
+    def career(self, player: str) -> list[dict]:
+        """Player career derived from this store, with no live fetch."""
+        from arabfootball.derive.careers import career
+
+        return career(self, player)
