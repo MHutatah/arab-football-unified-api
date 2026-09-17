@@ -1,5 +1,5 @@
 # Arab Football Unified API — consumer targets are the first three; the rest are producer-side.
-.PHONY: help install test lint pull-db serve init-db collect-saudi snapshot review
+.PHONY: help install test lint pull-db serve init-db collect-saudi snapshot review merge
 
 DB ?= arabfootball.db
 
@@ -13,6 +13,7 @@ help:
 	@echo "  make collect-saudi  ingest the current Saudi Pro League season"
 	@echo "  make snapshot     export a stamped SQLite snapshot for publishing"
 	@echo "  make review       list provisional entities awaiting review"
+	@echo "  make merge FROM=<provisional-id> INTO=<canonical-id>"
 	@echo "  make test / lint"
 
 install:
@@ -43,3 +44,7 @@ snapshot:
 
 review:
 	python -m arabfootball.resolve.review --db $(DB)
+
+# One-liner correction: fold a provisional entity into the club it really is.
+merge:
+	python -m arabfootball.resolve.review --db $(DB) merge $(FROM) $(INTO)
