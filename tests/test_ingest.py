@@ -6,6 +6,7 @@ import pytest
 
 from arabfootball.collectors.ingest import ingest
 from arabfootball.collectors.scores365 import Scores365Collector
+from arabfootball.resolve.resolver import Resolver
 from arabfootball.store.db import Store
 
 
@@ -46,6 +47,10 @@ def matches(store):
     return [dict(r) for r in store.conn.execute("SELECT * FROM matches ORDER BY kickoff_utc")]
 
 
+def count(store, table):
+    return store.conn.execute(f"SELECT COUNT(*) c FROM {table}").fetchone()["c"]
+
+
 def test_both_clubs_resolve_to_entities_before_the_match_is_stored(store):
     hilal = seed_club(store, "team:hilal", "Al Hilal", "الهلال", "5457")
 
@@ -84,6 +89,26 @@ def test_a_known_competition_id_attaches_the_match_without_inventing_one(store):
     )
     assert store.match(unknown.match_ids[0])["competition_id"] is None
     assert [e["type"] for e in store.review_queue()] == ["team", "team"]
+
+
+def test_a_team_is_never_attached_as_a_competition_by_a_shared_id(store):
+    """365scores numbers leagues and clubs separately: league 649 is not club 649."""
+    seed_club(store, "team:ettifaq", "Al Ettifaq", "الاتفاق", "649")
+
+    unnamed = ingest(store, [game()], country="SA")
+    assert store.match(unnamed.match_ids[0])["competition_id"] is None
+
+    # Same collision, but now the record names the competition, so it resolves:
+    # the id must not hand the resolver the club that shares the number.
+    named = ingest(
+        store,
+        [game(provider_ids={"365scores": "9002"},
+              kickoff_utc="2025-09-04T18:00:00+00:00",
+              competition_name="Saudi Pro League")],
+        country="SA",
+    )
+    competition = store.entity(store.match(named.match_ids[0])["competition_id"])
+    assert (competition["type"], competition["name_en"]) == ("competition", "Saudi Pro League")
 
 
 def test_provider_id_upserts_the_same_match_even_when_the_kickoff_moves(store):
@@ -159,6 +184,31 @@ def test_a_live_score_that_moves_on_is_still_written(store):
     assert (row["home_score"], row["away_score"]) == (2, 0)
 
 
+def test_a_stale_feed_cannot_rewind_a_finished_score(store):
+    """Forward-only covers the score, not just the status ladder."""
+    ingest(store, [game(status="finished", home_score=2, away_score=1)], country="SA")
+
+    # A feed still replaying the match as live must not subtract the second goal.
+    ingest(store, [game(status="live", home_score=1, away_score=0)], country="SA")
+
+    row = matches(store)[0]
+    assert (row["status"], row["home_score"], row["away_score"]) == ("finished", 2, 1)
+
+
+def test_a_correction_from_an_equally_current_feed_is_written(store):
+    """The deliberate allowance: a later goal is disallowed and 2-1 becomes 2-0.
+
+    Only a feed that has caught up with the stored state may do this — the check
+    is 'not behind', not 'never decreasing'.
+    """
+    ingest(store, [game(status="finished", home_score=2, away_score=1)], country="SA")
+
+    ingest(store, [game(status="finished", home_score=2, away_score=0)], country="SA")
+
+    row = matches(store)[0]
+    assert (row["home_score"], row["away_score"]) == (2, 0)
+
+
 def test_reingesting_the_same_payload_inserts_nothing_new(store):
     payload = [game(), game(
         home_team={"name": "Al Ittihad", "provider_ids": {"365scores": "5460"}},
@@ -182,12 +232,81 @@ def test_reingesting_the_same_payload_inserts_nothing_new(store):
 
 def test_an_unstorable_record_is_rejected_rather_than_half_written(store):
     with pytest.raises(ValueError, match="kickoff_utc"):
-        ingest(store, [game(kickoff_utc=None)], country="SA")
+        ingest(store, [game(kickoff_utc=None)], country="SA", strict=True)
     with pytest.raises(ValueError, match="no name"):
-        ingest(store, [game(away_team={"provider_ids": {"365scores": "5458"}})], country="SA")
+        ingest(store, [game(away_team={"provider_ids": {"365scores": "5458"}})],
+               country="SA", strict=True)
     with pytest.raises(ValueError, match="unknown match status"):
-        ingest(store, [game(status="abandoned")], country="SA")
+        # A status no provider vocabulary defines: not a state to guess at.
+        ingest(store, [game(status="relegated")], country="SA", strict=True)
+
+    # Rejected means nothing was written — not the match, and not the clubs that
+    # the home side had already resolved before the record was refused.
     assert matches(store) == []
+    assert count(store, "entities") == 0
+    assert count(store, "aliases") == 0
+    assert store.review_queue() == []
+
+
+def test_a_failure_after_the_first_club_resolved_rolls_that_club_back(store):
+    """Validation cannot foresee everything; the transaction boundary can.
+
+    The home club is already an entity with aliases by the time the away club is
+    attempted, so a failure there must undo it rather than leave an orphan in the
+    review queue for a match that was never stored.
+    """
+    real = Resolver(store)
+
+    class FailsOnTheAwayClub:
+        calls = 0
+
+        def resolve(self, **kwargs):
+            FailsOnTheAwayClub.calls += 1
+            if FailsOnTheAwayClub.calls == 2:
+                raise RuntimeError("provider lookup exploded")
+            return real.resolve(**kwargs)
+
+    result = ingest(store, [game()], country="SA", resolver=FailsOnTheAwayClub())
+
+    assert [e.reason for e in result.errors] == ["provider lookup exploded"]
+    assert (count(store, "entities"), count(store, "aliases")) == (0, 0)
+
+
+def test_a_bad_record_does_not_discard_the_rest_of_the_batch(store):
+    """A season is ingested in one pass; one unusable fixture is not a data loss."""
+    result = ingest(
+        store,
+        [
+            game(),
+            game(status="relegated",
+                 home_team={"name": "Al Feiha", "provider_ids": {"365scores": "5462"}},
+                 away_team={"name": "Al Fateh", "provider_ids": {"365scores": "5463"}},
+                 kickoff_utc="2025-08-29T18:00:00+00:00",
+                 provider_ids={"365scores": "9003"}),
+            game(kickoff_utc="2025-08-30T18:00:00+00:00",
+                 provider_ids={"365scores": "9004"}),
+        ],
+        country="SA",
+    )
+
+    assert result.inserted == 2
+    assert len(matches(store)) == 2
+    # The drop is reported, never silent...
+    assert [(e.index, "unknown match status" in e.reason) for e in result.errors] == [
+        (1, True)]
+    # ...and the refused record left nothing of itself behind.
+    assert [e["name_en"] for e in store.review_queue()] == ["Al Hilal", "Al Riyadh"]
+
+
+def test_provider_states_outside_the_ladder_are_mapped_not_rejected(store):
+    """Real feeds emit more than three states; each collapses onto one we store."""
+    postponed = ingest(store, [game(status="Postponed")], country="SA")
+    assert postponed.errors == []
+    assert matches(store)[0]["status"] == "scheduled"
+
+    ingest(store, [game(status="abandoned", home_score=1, away_score=0)], country="SA")
+    row = matches(store)[0]
+    assert (row["status"], row["home_score"]) == ("finished", 1)
 
 
 def test_a_canned_collector_payload_ingests_and_then_resyncs_clean(store):

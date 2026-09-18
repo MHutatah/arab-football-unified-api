@@ -34,7 +34,7 @@ class Resolver:
     """Resolves provider records to canonical entity ids.
 
     `store` must provide:
-      find_by_provider(provider, provider_id) -> entity_id | None
+      find_by_provider(provider, provider_id, type=None) -> entity_id | None
       find_by_norm(type, country, norm_name)  -> [entity_id]
       candidates(type, country)               -> [(entity_id, name)]
       create_entity(type, names, country, provisional) -> entity_id
@@ -48,9 +48,11 @@ class Resolver:
                 name=None, name_ar=None, name_en=None, country=None) -> Resolution:
         names = [n for n in (name, name_ar, name_en) if n]
 
-        # 1. provider id — authoritative
+        # 1. provider id — authoritative, but only within this type: a provider
+        # numbers its teams and its competitions separately, so the same number
+        # is two different things depending on what is being resolved.
         if provider_id is not None:
-            hit = self.store.find_by_provider(provider, str(provider_id))
+            hit = self.store.find_by_provider(provider, str(provider_id), type=type)
             if hit:
                 self._learn(hit, provider, provider_id, names)
                 return Resolution(hit, "provider_id", 1.0)
