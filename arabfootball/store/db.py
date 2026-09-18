@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -32,14 +31,8 @@ def _status_rank(status: str) -> int:
     return MATCH_STATUS_ORDER.index(status)
 
 
-def _forward_score(incoming: int | None, stored: int | None, may_write: bool) -> int | None:
-    """A score is written only by a feed that reports one and is not behind."""
-    return incoming if may_write and incoming is not None else stored
-
-
 class Store:
     def __init__(self, path: str = ":memory:"):
-        self._grouped = False
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
@@ -48,48 +41,11 @@ class Store:
     def close(self) -> None:
         self.conn.close()
 
-    @contextmanager
-    def atomic(self):
-        """Group writes so that a failure leaves the store exactly as it was.
-
-        Resolution writes entities and aliases before the row they were resolved
-        for exists; without a boundary, a record refused half-way through would
-        leave those provisional clubs behind in the review queue.
-        """
-        if self._grouped:            # already inside a boundary: it owns the commit
-            yield
-            return
-        self._grouped = True
-        try:
-            with self.conn:          # commits on success, rolls back on any exception
-                yield
-        finally:
-            self._grouped = False
-
-    def _commit(self) -> None:
-        """Commit, unless `atomic` is grouping these writes into one unit."""
-        if not self._grouped:
-            self.conn.commit()
-
     # ── resolver interface ──────────────────────────────────────────────────
-    def find_by_provider(self, provider: str, provider_id: str,
-                         type: str | None = None) -> str | None:
-        """The entity a provider's own id points at, optionally within one type.
-
-        Provider id spaces are per-type: 365scores numbers teams, competitions
-        and players independently, so `649` is both a club and a league. A caller
-        that knows which one it is asking for must say so, or it can be handed
-        the other.
-        """
-        sql = "SELECT a.entity_id FROM aliases a"
-        args: list[str] = [provider, provider_id]
-        if type:
-            sql += " JOIN entities e ON e.id=a.entity_id"
-        sql += " WHERE a.provider=? AND a.provider_id=?"
-        if type:
-            sql += " AND e.type=?"
-            args.append(type)
-        row = self.conn.execute(sql + " LIMIT 1", args).fetchone()
+    def find_by_provider(self, provider: str, provider_id: str) -> str | None:
+        row = self.conn.execute(
+            "SELECT entity_id FROM aliases WHERE provider=? AND provider_id=? LIMIT 1",
+            (provider, provider_id)).fetchone()
         return row["entity_id"] if row else None
 
     def find_by_norm(self, type: str, country: str | None, key: str,
@@ -130,7 +86,7 @@ class Store:
             (entity_id, type, name_ar, name_en, country,
              json.dumps(meta, ensure_ascii=False) if meta else None,
              1 if provisional else 0, _now()))
-        self._commit()
+        self.conn.commit()
         return entity_id
 
     def add_alias(self, entity_id, provider, provider_id, name_variant, script) -> None:
@@ -140,7 +96,7 @@ class Store:
             "INSERT OR IGNORE INTO aliases (entity_id,provider,provider_id,name_variant,script)"
             " VALUES (?,?,?,?,?)",
             (entity_id, provider, provider_id, name_variant, script))
-        self._commit()
+        self.conn.commit()
 
     # ── reads ───────────────────────────────────────────────────────────────
     def entity(self, entity_id: str) -> dict | None:
@@ -194,10 +150,10 @@ class Store:
         """Store one match forward-only; returns (match_id, inserted|updated|unchanged).
 
         A resync may only ever add to what is already recorded: the status climbs
-        the ladder, a feed that is behind the stored state cannot touch the score,
+        the ladder, a known score is never blanked by a feed that reports none,
         and every provider id ever seen for the match is kept.
         """
-        incoming_rank = _status_rank(status)
+        _status_rank(status)
         ids = {p: str(i) for p, i in (provider_ids or {}).items() if i is not None}
         existing = self.find_match(provider_ids=ids, home_entity=home_entity,
                                    away_entity=away_entity, kickoff_utc=kickoff_utc)
@@ -210,17 +166,10 @@ class Store:
                 (match_id, competition_id, season, round, home_entity, away_entity,
                  kickoff_utc, venue_id, status, home_score, away_score,
                  json.dumps(ids, ensure_ascii=False) if ids else None, _now()))
-            self._commit()
+            self.conn.commit()
             return match_id, "inserted"
 
         stored_ids = json.loads(existing["provider_ids"]) if existing["provider_ids"] else {}
-        # Scores are forward-only in the same sense the ladder is: only a feed
-        # that has caught up with the stored state may write them. A stale pass
-        # still calling a finished 2-1 a live 1-0 is ignored, while a second
-        # finished pass may still correct 2-1 to 2-0 — VAR does disallow goals
-        # after the whistle, and that correction comes from an equally current
-        # feed rather than from one that is behind.
-        may_score = incoming_rank >= _status_rank(existing["status"])
         merged = {
             "competition_id": competition_id or existing["competition_id"],
             "season": season or existing["season"],
@@ -230,8 +179,8 @@ class Store:
             "kickoff_utc": kickoff_utc,
             "venue_id": venue_id or existing["venue_id"],
             "status": max(status, existing["status"], key=_status_rank),
-            "home_score": _forward_score(home_score, existing["home_score"], may_score),
-            "away_score": _forward_score(away_score, existing["away_score"], may_score),
+            "home_score": home_score if home_score is not None else existing["home_score"],
+            "away_score": away_score if away_score is not None else existing["away_score"],
             "provider_ids": {**stored_ids, **ids},
         }
         previous = {column: (stored_ids if column == "provider_ids" else existing[column])
@@ -248,7 +197,7 @@ class Store:
              json.dumps(merged["provider_ids"], ensure_ascii=False)
              if merged["provider_ids"] else None,
              _now(), existing["id"]))
-        self._commit()
+        self.conn.commit()
         return existing["id"], "updated" if changed else "unchanged"
 
     def upsert_appearance(self, *, player_entity: str, match_id: str, team_entity: str,
@@ -279,7 +228,7 @@ class Store:
             (player_entity, match_id, team_entity, started, minutes, goals,
              assists, yellow, red),
         )
-        self._commit()
+        self.conn.commit()
 
     def form(self, team: str, n: int = 5) -> dict:
         """Recent results derived from this store, with no live fetch."""

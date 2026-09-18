@@ -139,10 +139,7 @@ setup, the thing a developer downloads. Schema:
 [`arabfootball/store/schema.sql`](../arabfootball/store/schema.sql).
 
 Everything carries provenance and a freshness stamp. Match state is **forward-only**:
-a stale feed can never un-finish a game, and it can never rewind the score either —
-only a feed that has caught up with the stored status may write one, so a later
-correction (a goal disallowed after the whistle) still lands while a lagging pass
-is ignored.
+a stale feed can never un-finish a game.
 
 ## 9. Distribution
 
