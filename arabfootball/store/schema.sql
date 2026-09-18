@@ -32,6 +32,19 @@ CREATE TABLE IF NOT EXISTS aliases (
 CREATE INDEX IF NOT EXISTS idx_aliases_entity ON aliases(entity_id);
 CREATE INDEX IF NOT EXISTS idx_aliases_lookup ON aliases(provider, provider_id);
 
+-- Every maintainer merge of a provisional entity into a canonical one. Kept
+-- forever: it is the audit trail for a correction, and it makes re-running the
+-- same merge a no-op instead of an error about an id that no longer exists.
+CREATE TABLE IF NOT EXISTS entity_merges (
+    provisional_id TEXT PRIMARY KEY,        -- the id that was folded away
+    canonical_id   TEXT NOT NULL REFERENCES entities(id),
+    name_ar        TEXT,                    -- the spelling that failed to resolve,
+    name_en        TEXT,                    -- also kept as an alias of the canonical
+    aliases_moved  INTEGER NOT NULL DEFAULT 0,
+    merged_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_entity_merges_canonical ON entity_merges(canonical_id);
+
 -- ── the archive ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS matches (
     id             TEXT PRIMARY KEY,
