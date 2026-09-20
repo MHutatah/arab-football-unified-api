@@ -2,6 +2,10 @@
 .PHONY: help install test lint pull-db serve init-db collect-saudi snapshot review merge
 
 DB ?= arabfootball.db
+# The interpreter `make snapshot` runs. Overridable so the round-trip test can
+# run the target itself under the interpreter the suite is running, rather than
+# assert about the recipe's text.
+PYTHON ?= python
 
 help:
 	@echo "Consumer:"
@@ -40,7 +44,7 @@ collect-saudi:
 	python -m arabfootball.collectors.run --competition saudi --db $(DB)
 
 snapshot:
-	python scripts/make_snapshot.py --db $(DB) --out dist/
+	$(PYTHON) scripts/make_snapshot.py --db $(DB) --out dist/
 
 review:
 	python -m arabfootball.resolve.review --db $(DB)

@@ -22,7 +22,9 @@ diagnostics, including the error payloads of failed fetches) and
 ``entity_merges`` (the correction audit trail) are producer-side tables and are
 not copied at all; a ``tier='reference'`` transfer is filtered out, because an
 unstated-licence source may point us at a fact but may never be redistributed
-through us (`docs/sources.md`).
+through us (`docs/sources.md`). Every table in the schema has to be on one side
+of that line: a table nobody has classified stops the export rather than
+silently never shipping.
 
 Unreviewed (``provisional``) entities *do* ship: they are the honest state of an
 identity rather than a wrong guess, and the appearance spine that careers, squads
@@ -55,6 +57,9 @@ PERIOD_PATTERN = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 # Producer-side tables: run observability and the merge audit trail say nothing
 # to a consumer about football and everything about how we work.
 INTERNAL_TABLES = ("source_runs", "entity_merges")
+
+# Written by the export itself rather than copied from the store.
+STAMP_TABLES = ("snapshot_meta",)
 
 # What ships, in foreign-key dependency order. `SELECT *` is safe where nothing
 # is redacted — both databases are built from the same `schema.sql` — while the
@@ -99,6 +104,24 @@ def snapshot_name(period: str) -> str:
     return f"arabfootball-{period}.db"
 
 
+def unclassified_tables() -> tuple[str, ...]:
+    """Schema tables this module neither publishes nor declares internal.
+
+    A table added to ``schema.sql`` and to nothing else would otherwise just
+    never ship — silently, because omission from :data:`COPY_STATEMENTS` is what
+    exclusion looks like. Deciding is cheap; discovering a missing table in a
+    published file a month later is not, so the export refuses to run until
+    someone has said which side of the line the new table is on.
+    """
+    store = Store(":memory:")
+    try:
+        names = {row[0] for row in store.conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")}
+    finally:
+        store.close()
+    return tuple(sorted(names - set(PUBLISHED_TABLES) - set(INTERNAL_TABLES) - set(STAMP_TABLES)))
+
+
 def export(db_path: str | Path, out_dir: str | Path = "dist", *, period: str | None = None,
            version: str | None = None, generated_at: str | None = None) -> Path:
     """Write ``<out_dir>/arabfootball-YYYY-MM.db`` and return its path.
@@ -109,6 +132,13 @@ def export(db_path: str | Path, out_dir: str | Path = "dist", *, period: str | N
     source = Path(db_path)
     if not source.is_file():
         raise FileNotFoundError(f"no database at {source}")
+
+    unclassified = unclassified_tables()
+    if unclassified:
+        raise RuntimeError(
+            "schema tables are neither exported nor declared internal: "
+            + ", ".join(unclassified)
+            + " — add them to COPY_STATEMENTS or to INTERNAL_TABLES")
 
     generated_at = generated_at or _now()
     period = period or generated_at[:7]

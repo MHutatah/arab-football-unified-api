@@ -5,6 +5,7 @@ What ships is not the working database. It has to tell a practitioner what it is
 every internal-only row behind, and it has to be small enough to download.
 """
 import json
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -296,9 +297,23 @@ def test_script_entry_point_runs_standalone(work_db, tmp_path):
     assert expected.is_file()
 
 
-def test_make_snapshot_target_writes_into_dist():
-    """The acceptance criterion is the make target, not just the module."""
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    target = makefile.split("\nsnapshot:", 1)[1].split("\n\n", 1)[0]
-    assert "scripts/make_snapshot.py" in target
-    assert "--out dist/" in target
+@pytest.mark.skipif(shutil.which("make") is None, reason="make is not installed")
+def test_make_snapshot_target_writes_into_dist(work_db, tmp_path):
+    """The acceptance criterion is `make snapshot`, so run it, don't read it.
+
+    The Makefile and the script are copied into the temporary directory and the
+    target is run there, so this exercises the real recipe — and the real
+    relative `dist/` it writes into — without leaving a build artefact in the
+    working tree.
+    """
+    shutil.copy(ROOT / "Makefile", tmp_path / "Makefile")
+    shutil.copytree(ROOT / "scripts", tmp_path / "scripts")
+
+    result = subprocess.run(
+        ["make", "snapshot", "DB=arabfootball.db", f"PYTHON={sys.executable}"],
+        cwd=tmp_path, capture_output=True, text=True, check=False)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    written = tmp_path / "dist" / f"arabfootball-{datetime.now(UTC):%Y-%m}.db"
+    assert written.is_file()
+    assert read_meta(written)["license"] == "ODbL-1.0"
