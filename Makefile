@@ -34,7 +34,7 @@ pull-db:
 	@python scripts/pull_db.py --out $(DB)
 
 serve:
-	uvicorn arabfootball.api.main:app --host 0.0.0.0 --port 8100
+	ARABFOOTBALL_DB=$(DB) uvicorn arabfootball.api.main:app --host 0.0.0.0 --port 8100
 
 collect-saudi:
 	python -m arabfootball.collectors.run --competition saudi --db $(DB)
