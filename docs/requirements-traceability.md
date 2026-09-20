@@ -11,7 +11,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | Req | Requirement | Implementation | Verifying tests | Sprint | Status |
 |---|---|---|---|---|:--:|
 | FR-1 | Language-neutral canonical ids | `store/db.py::create_entity`, `schema.sql::entities` | `test_resolver.py` (all — every assertion compares ids, never names) | 1 · K-02/K-05 | ✅ |
-| FR-2 | Carry + return `name_ar` and `name_en` | `schema.sql::entities`, `resolver.py::_create` | `test_same_club_across_providers_and_scripts_is_one_entity` | 1 · K-02 | ✅ |
+| FR-2 | Carry + return `name_ar` and `name_en` | `schema.sql::entities`, `resolver.py::_create`, `api/lang.py::entity_payload` | `test_same_club_across_providers_and_scripts_is_one_entity`, `test_api_lang.py::test_both_names_are_always_present_whatever_the_language` | 1 · K-02/K-16 | ✅ |
 | FR-3 | Resolution order: provider id → name → cross-script → fuzzy | `resolve/resolver.py::resolve`, `normalize.py::norm/xkey/similarity` | `test_provider_id_is_authoritative`, `test_learned_aliases_make_the_next_pass_exact`, `test_arabic_variants_normalize_together`, `test_latin_variants_normalize_together`, `test_similarity_tolerates_transliteration_noise` | 1 · K-03/K-04 | ✅ |
 | FR-4 | Never guess — provisional + review queue | `resolver.py::_create`, `store/db.py::review_queue` | `test_unmatched_becomes_provisional_not_a_guess`, `test_wrong_country_namesake_never_matches`, `test_al_ahli_namesakes_stay_separate` | 1 · K-04 | ✅ |
 | FR-5 | Learn every provider id and spelling | `resolver.py::_learn`, `schema.sql::aliases` | `test_learned_aliases_make_the_next_pass_exact` | 1 · K-04 | ✅ |
@@ -25,7 +25,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | FR-13 | LLM typed-fact extraction (ar + en) | `enrich/` _(planned)_ | _(Sprint 4)_ | 4 | ⬜ |
 | FR-14 | Drop facts whose entities don't resolve | `enrich/` _(planned)_ | _(Sprint 4)_ | 4 | ⬜ |
 | FR-15 | Monthly stamped SQLite snapshot | `schema.sql::snapshot_meta`, `scripts/make_snapshot.py` _(planned)_ | _(K-17, K-18 round-trip)_ | 1 · K-17/K-18 | 🟡 schema only |
-| FR-16 | Bundled bilingual read API `/v1` | `api/` _(planned)_ | _(K-15, K-16)_ | 1 · K-15/K-16 | ⬜ |
+| FR-16 | Bundled bilingual read API `/v1` | `api/lang.py::parse_lang/display_name/entity_payload`, `api/main.py::create_app` | `test_api_lang.py` (20 — both scripts always, `?lang=` default/selection, fallback) | 1 · K-15/K-16 | 🟡 bilingual shape + `?lang=` done; remaining endpoints K-15 |
 | FR-17 | MIT code · ODbL data · attribution · takedown | `LICENSE`, `LICENSE-DATA`, `README.md` | _(manual review)_ | 1 · K-01 | ✅ |
 | FR-18 | Bulk open-dataset ingestion, tiered by licence | `schema.sql::transfers.tier`, `collectors/bulk.py` _(planned)_, `docs/sources.md` | `test_source_tiers.py` (3 — default tier, export filter, corroboration promotion) | 2 · E2.1 | 🟡 tiering enforced in schema + tests |
 
