@@ -24,7 +24,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | FR-12 | Record every collector run | `schema.sql::source_runs` | _(K-07)_ | 1 · K-07 | 🟡 schema only |
 | FR-13 | LLM typed-fact extraction (ar + en) | `enrich/` _(planned)_ | _(Sprint 4)_ | 4 | ⬜ |
 | FR-14 | Drop facts whose entities don't resolve | `enrich/` _(planned)_ | _(Sprint 4)_ | 4 | ⬜ |
-| FR-15 | Monthly stamped SQLite snapshot | `schema.sql::snapshot_meta`, `scripts/make_snapshot.py` _(planned)_ | _(K-17, K-18 round-trip)_ | 1 · K-17/K-18 | 🟡 schema only |
+| FR-15 | Monthly stamped SQLite snapshot | `schema.sql::snapshot_meta`, `store/snapshot.py`, `scripts/make_snapshot.py` | `test_snapshot.py` (stamp, redaction, exclusion, vacuum, CLI) | 1 · K-17/K-18 | 🟡 export done, round-trip (K-18) open |
 | FR-16 | Bundled bilingual read API `/v1` | `api/` _(planned)_ | _(K-15, K-16)_ | 1 · K-15/K-16 | ⬜ |
 | FR-17 | MIT code · ODbL data · attribution · takedown | `LICENSE`, `LICENSE-DATA`, `README.md` | _(manual review)_ | 1 · K-01 | ✅ |
 | FR-18 | Bulk open-dataset ingestion, tiered by licence | `schema.sql::transfers.tier`, `collectors/bulk.py` _(planned)_, `docs/sources.md` | `test_source_tiers.py` (3 — default tier, export filter, corroboration promotion) | 2 · E2.1 | 🟡 tiering enforced in schema + tests |
