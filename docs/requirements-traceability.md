@@ -10,8 +10,8 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 
 | Req | Requirement | Implementation | Verifying tests | Sprint | Status |
 |---|---|---|---|---|:--:|
-| FR-1 | Language-neutral canonical ids | `store/db.py::create_entity`, `schema.sql::entities` | `test_resolver.py` (all — every assertion compares ids, never names) | 1 · K-02/K-05 | ✅ |
-| FR-2 | Carry + return `name_ar` and `name_en` | `schema.sql::entities`, `resolver.py::_create` | `test_same_club_across_providers_and_scripts_is_one_entity` | 1 · K-02 | ✅ |
+| FR-1 | Language-neutral canonical ids | `store/db.py::create_entity`, `schema.sql::entities`, `collectors/standings.py::seed_league` (the Saudi league + its 18 clubs, seeded by id before any fixture) | `test_resolver.py` (all — every assertion compares ids, never names), `test_standings.py::test_seeding_creates_the_competition_with_both_names_and_all_eighteen_clubs`, `test_run.py::test_a_run_seeds_the_league_before_it_ingests_a_fixture` | 1 · K-02/K-05/K-11 | ✅ |
+| FR-2 | Carry + return `name_ar` and `name_en` | `schema.sql::entities`, `resolver.py::_create`, `collectors/standings.py::SAUDI_PRO_LEAGUE` (competition seeded with both names) | `test_same_club_across_providers_and_scripts_is_one_entity`, `test_standings.py::test_seeding_creates_the_competition_with_both_names_and_all_eighteen_clubs` | 1 · K-02/K-11 | ✅ |
 | FR-3 | Resolution order: provider id → name → cross-script → fuzzy | `resolve/resolver.py::resolve`, `normalize.py::norm/xkey/similarity` | `test_provider_id_is_authoritative`, `test_learned_aliases_make_the_next_pass_exact`, `test_arabic_variants_normalize_together`, `test_latin_variants_normalize_together`, `test_similarity_tolerates_transliteration_noise` | 1 · K-03/K-04 | ✅ |
 | FR-4 | Never guess — provisional + review queue | `resolver.py::_create`, `store/db.py::review_queue` | `test_unmatched_becomes_provisional_not_a_guess`, `test_wrong_country_namesake_never_matches`, `test_al_ahli_namesakes_stay_separate` | 1 · K-04 | ✅ |
 | FR-5 | Learn every provider id and spelling | `resolver.py::_learn`, `schema.sql::aliases` | `test_learned_aliases_make_the_next_pass_exact` | 1 · K-04 | ✅ |
@@ -37,7 +37,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | Req | Requirement | Target | Verification | Status |
 |---|---|---|---|:--:|
 | NFR-identity | Namesake collisions in a published snapshot | **0** | Adversarial suite (`test_resolver.py`) + review queue audit | ✅ suite green |
-| NFR-provisional | Provisional entities after a full-league ingest | < 5 % | Measured on the Saudi ingest (K-08/K-09) | ⬜ |
+| NFR-provisional | Provisional entities after a full-league ingest | < 5 % | `collectors/run.py::provisional_rate` measures every `make collect-saudi` run and stamps it into `snapshot_meta.provisional_rate`; seeding from `/standings` first is what drives it down (`test_run.py`) | 🟡 measured + recorded — **0 %** seeded vs **100 %** unseeded on the canned Saudi ingest; the full-season figure lands with the first real run |
 | NFR-offline | Test suite makes zero network calls | always | CI (`ci.yml`); collectors use canned payloads | ✅ |
 | NFR-failsoft | Any single source down ⇒ pipeline still completes | always | Collector contract tests (K-07) | ⬜ |
 | NFR-portable | Snapshot opens with stdlib `sqlite3`, no extensions | always | Round-trip test (K-18) | ⬜ |
