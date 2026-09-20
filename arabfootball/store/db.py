@@ -144,6 +144,18 @@ class Store:
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM entities WHERE provisional=1 ORDER BY created_at")]
 
+    def meta(self, key: str) -> str | None:
+        """A value stamped into `snapshot_meta` — what this store holds."""
+        row = self.conn.execute(
+            "SELECT value FROM snapshot_meta WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else None
+
+    def set_meta(self, key: str, value: str) -> None:
+        self.conn.execute(
+            "INSERT INTO snapshot_meta (key,value) VALUES (?,?)"
+            " ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, str(value)))
+        self.conn.commit()
+
     # ── archive writes ──────────────────────────────────────────────────────
     def match(self, match_id: str) -> dict | None:
         row = self.conn.execute("SELECT * FROM matches WHERE id=?", (match_id,)).fetchone()

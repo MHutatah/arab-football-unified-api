@@ -1,5 +1,5 @@
 # Arab Football Unified API — consumer targets are the first three; the rest are producer-side.
-.PHONY: help install test lint pull-db serve init-db collect-saudi snapshot review merge
+.PHONY: help install test lint pull-db serve init-db seed-saudi collect-saudi snapshot review merge
 
 DB ?= arabfootball.db
 
@@ -10,7 +10,8 @@ help:
 	@echo "  make install      install the package + dev tools"
 	@echo "Producer:"
 	@echo "  make init-db      create an empty DB from schema.sql"
-	@echo "  make collect-saudi  ingest the current Saudi Pro League season"
+	@echo "  make seed-saudi   seed the Saudi league + its clubs from /standings"
+	@echo "  make collect-saudi  seed, then ingest the current Saudi Pro League season"
 	@echo "  make snapshot     export a stamped SQLite snapshot for publishing"
 	@echo "  make review       list provisional entities awaiting review"
 	@echo "  make merge FROM=<provisional-id> INTO=<canonical-id>"
@@ -35,6 +36,11 @@ pull-db:
 
 serve:
 	ARABFOOTBALL_DB=$(DB) uvicorn arabfootball.api.main:app --host 0.0.0.0 --port 8100
+
+# Clubs before fixtures: the seed is what stops an ingest inventing provisional
+# entities for eighteen clubs the store has never been told about.
+seed-saudi:
+	python -m arabfootball.collectors.run --competition saudi --db $(DB) --seed-only
 
 collect-saudi:
 	python -m arabfootball.collectors.run --competition saudi --db $(DB)

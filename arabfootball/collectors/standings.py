@@ -13,12 +13,9 @@ league's standings table is not a guess. The names already recorded for an
 entity are kept, though — a maintainer's correction survives a reseed, and the
 seed's own spelling is learned as an alias either way.
 
-Nothing calls `seed_league` yet outside the tests. The entry point it belongs
-in front of — `arabfootball.collectors.run`, which `make collect-saudi` already
-invokes — is not in the repo yet and no sprint item creates it, so there is
-nowhere to wire the ordering in. Whoever adds that module owns it: seed the
-league, then ingest fixtures (the sprint's own `{K-08,K-11}→K-09` sequencing).
-Until then a real run ingests unseeded and fills the review queue.
+The ordering this depends on is `arabfootball.collectors.run`'s to honour, and
+it does: `make collect-saudi` seeds the league here before it ingests a single
+fixture, and measures what that is worth.
 """
 from __future__ import annotations
 
