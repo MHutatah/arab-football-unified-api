@@ -24,7 +24,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | FR-12 | Record every collector run | `schema.sql::source_runs` | _(K-07)_ | 1 · K-07 | 🟡 schema only |
 | FR-13 | LLM typed-fact extraction (ar + en) | `enrich/` _(planned)_ | _(Sprint 4)_ | 4 | ⬜ |
 | FR-14 | Drop facts whose entities don't resolve | `enrich/` _(planned)_ | _(Sprint 4)_ | 4 | ⬜ |
-| FR-15 | Monthly stamped SQLite snapshot | `schema.sql::snapshot_meta`, `scripts/make_snapshot.py` _(planned)_ | _(K-17, K-18 round-trip)_ | 1 · K-17/K-18 | 🟡 schema only |
+| FR-15 | Monthly stamped SQLite snapshot | `schema.sql::snapshot_meta`, `store/snapshot.py`, `scripts/make_snapshot.py`, `Makefile::snapshot` | `test_snapshot.py` (stamp, redaction, exclusion, vacuum, CLI, `make snapshot`) · `test_snapshot_roundtrip.py` (row-for-row vs the store, table accounting, fresh-process answers) | 1 · K-17/K-18 | ✅ |
 | FR-16 | Bundled bilingual read API `/v1` | `api/` _(planned)_ | _(K-15, K-16)_ | 1 · K-15/K-16 | ⬜ |
 | FR-17 | MIT code · ODbL data · attribution · takedown | `LICENSE`, `LICENSE-DATA`, `README.md` | _(manual review)_ | 1 · K-01 | ✅ |
 | FR-18 | Bulk open-dataset ingestion, tiered by licence | `schema.sql::transfers.tier`, `collectors/bulk.py` _(planned)_, `docs/sources.md` | `test_source_tiers.py` (3 — default tier, export filter, corroboration promotion) | 2 · E2.1 | 🟡 tiering enforced in schema + tests |
@@ -40,7 +40,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | NFR-provisional | Provisional entities after a full-league ingest | < 5 % | Measured on the Saudi ingest (K-08/K-09) | ⬜ |
 | NFR-offline | Test suite makes zero network calls | always | CI (`ci.yml`); collectors use canned payloads | ✅ |
 | NFR-failsoft | Any single source down ⇒ pipeline still completes | always | Collector contract tests (K-07) | ⬜ |
-| NFR-portable | Snapshot opens with stdlib `sqlite3`, no extensions | always | Round-trip test (K-18) | ⬜ |
+| NFR-portable | Snapshot opens with stdlib `sqlite3`, no extensions | always | Round-trip test (K-18): a fresh process reads the export with `import sqlite3` alone | ✅ |
 | NFR-onboard | Clone → first query | < 5 min | Fresh-clone walkthrough (K-20) | ⬜ |
 | NFR-license | Rows in a snapshot from a non-redistributable source | **0** | Export filters `tier='reference'`; `test_source_tiers.py`; `docs/sources.md` register | 🟡 guardrail tested |
 
