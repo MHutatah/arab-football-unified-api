@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from arabfootball.collectors.ingest import PROVISIONAL_RATE_KEY, ingest, provisional_rate
+from arabfootball.collectors.ingest import ingest
 from arabfootball.collectors.scores365 import Scores365Collector
 from arabfootball.collectors.standings import (
     SAUDI_PRO_LEAGUE,
@@ -45,6 +45,16 @@ def collect_standings(store, requests=None):
         return StandingsCollector(store, client=client).collect()
 
 
+def collect_payload(store, payload):
+    """Collect an arbitrary standings shape, for the parsing edge cases."""
+    with canned(payload) as client:
+        return StandingsCollector(store, client=client).collect()
+
+
+def group(*rows):
+    return {"standings": [{"competitionId": 649, "rows": list(rows)}]}
+
+
 def ingest_fixtures(store):
     with canned(games_payload()) as client:
         collector = Scores365Collector(store, client=client, window_days=31)
@@ -76,6 +86,111 @@ def test_the_standings_table_is_collected_as_one_record_per_club(store):
         "competition_provider_ids": {"365scores": "649"},
     }
     assert store.conn.execute("SELECT status FROM source_runs").fetchone()["status"] == "ok"
+
+
+def test_a_flat_row_is_read_from_its_own_competitor_fields(store):
+    """Not every group nests a `competitor`; some carry the club fields inline."""
+    records = collect_payload(store, group(
+        {"position": 1, "competitorId": 5457, "competitorName": "Al Hilal"}))
+
+    assert records == [{
+        "name": "Al Hilal",
+        "provider_ids": {"365scores": "5457"},
+        "position": 1,
+        "competition_provider_ids": {"365scores": "649"},
+    }]
+
+
+def test_a_flat_row_carrying_the_nested_field_names_is_read_from_the_row(store):
+    """The other flat shape: `id`/`name` at the top level, no `competitor` at all."""
+    records = collect_payload(store, group({"position": 1, "id": 5457, "name": "Al Hilal"}))
+
+    assert records[0]["name"] == "Al Hilal"
+    assert records[0]["provider_ids"] == {"365scores": "5457"}
+
+
+def test_a_nonmapping_competitor_falls_back_to_the_row(store):
+    records = collect_payload(store, group(
+        {"position": 2, "competitor": None, "competitorId": 5461,
+         "competitorName": "Al Nassr"}))
+
+    assert records[0]["name"] == "Al Nassr"
+    assert records[0]["provider_ids"] == {"365scores": "5461"}
+
+
+def test_a_row_that_ranks_instead_of_positioning_is_still_placed(store):
+    records = collect_payload(store, group(
+        {"rank": 2, "competitor": {"id": 5461, "name": "Al Nassr"}},
+        {"rank": 1, "competitor": {"id": 5457, "name": "Al Hilal"}}))
+
+    assert [record["position"] for record in records] == [1, 2]
+    assert [record["name"] for record in records] == ["Al Hilal", "Al Nassr"]
+
+
+def test_a_row_with_no_usable_position_sorts_last(store):
+    records = collect_payload(store, group(
+        {"position": None, "competitor": {"id": 5461, "name": "Al Nassr"}},
+        {"position": "not a number", "competitor": {"id": 5460, "name": "Al Ittihad"}},
+        {"position": 1, "competitor": {"id": 5457, "name": "Al Hilal"}}))
+
+    assert records[0]["name"] == "Al Hilal"
+    assert {record["name"] for record in records[1:]} == {"Al Nassr", "Al Ittihad"}
+    assert [record["position"] for record in records] == [1, None, None]
+
+
+def test_a_club_listed_twice_is_collected_once(store):
+    """A promotion/relegation group can repeat a club; seeding it twice would
+    make the second pass a duplicate rather than a no-op."""
+    records = collect_payload(store, group(
+        {"position": 1, "competitor": {"id": 5457, "name": "Al Hilal"}},
+        {"position": 1, "competitor": {"id": 5457, "name": "Al-Hilal SFC"}}))
+
+    assert len(records) == 1
+    assert records[0]["name"] == "Al Hilal"  # the first spelling wins
+
+
+def test_every_group_of_a_multigroup_table_is_collected(store):
+    records = collect_payload(store, {"standings": [
+        {"name": "Group A", "rows": [
+            {"position": 1, "competitor": {"id": 5457, "name": "Al Hilal"}}]},
+        {"name": "Group B", "rows": [
+            {"position": 1, "competitor": {"id": 5461, "name": "Al Nassr"}}]},
+        {"name": "no rows at all"},
+    ]})
+
+    assert {record["name"] for record in records} == {"Al Hilal", "Al Nassr"}
+
+
+def test_a_single_standings_group_outside_a_list_is_accepted(store):
+    records = collect_payload(store, {"standings": {
+        "competitionId": 649,
+        "rows": [{"position": 1, "competitor": {"id": 5457, "name": "Al Hilal"}}]}})
+
+    assert [record["name"] for record in records] == ["Al Hilal"]
+
+
+def test_a_standings_response_that_is_not_an_object_fails_soft(store):
+    assert collect_payload(store, ["not", "an", "object"]) == []
+
+    run = store.conn.execute("SELECT status, errors FROM source_runs").fetchone()
+    assert run["status"] == "failed"
+    assert "not an object" in json.loads(run["errors"])[0]["message"]
+
+
+def test_a_row_without_a_usable_competitor_fails_soft(store):
+    assert collect_payload(store, group({"position": 1, "competitor": {"id": 5457}})) == []
+
+    run = store.conn.execute("SELECT status, errors FROM source_runs").fetchone()
+    assert run["status"] == "failed"
+    assert "invalid competitor" in json.loads(run["errors"])[0]["message"]
+
+
+def test_a_nonmapping_row_fails_soft(store):
+    assert collect_payload(store, group("Al Hilal")) == []
+
+    run = store.conn.execute("SELECT status, errors FROM source_runs").fetchone()
+    assert run["status"] == "failed"
+    assert "invalid row" in json.loads(run["errors"])[0]["message"]
 
 
 def test_a_standings_payload_without_rows_fails_soft(store):
@@ -167,32 +282,33 @@ def test_a_club_record_without_the_provider_id_is_refused(store):
         seed_league(store, [{"name": "Al Hilal", "provider_ids": {}}])
 
 
-def test_seeding_first_drives_the_measured_provisional_rate_to_zero(store):
+def test_seeding_first_leaves_a_fixture_ingest_with_nothing_provisional(store):
+    """The point of the module: seed, and the same ingest stops guessing."""
     seed_league(store, collect_standings(store))
 
-    measurement = provisional_rate(store, ingest_fixtures(store))
+    result = ingest_fixtures(store)
 
-    # Two fixtures, four clubs and the league — every one of them canonical.
-    assert (measurement.matches, measurement.entities) == (2, 5)
-    assert (measurement.provisional, measurement.rate) == (0, 0.0)
-    assert json.loads(store.meta(PROVISIONAL_RATE_KEY)) == {
-        "matches": 2, "entities": 5, "provisional": 0, "rate": 0.0,
-        "measured_at": measurement.measured_at,
-    }
+    # Two fixtures, four clubs and the league — every one of them canonical,
+    # and the league attached rather than left NULL.
+    assert len(result.match_ids) == 2
+    assert _ingested_entities(store, result) == 5
+    assert store.review_queue() == []
 
 
-def test_the_same_ingest_without_seeding_measures_a_fully_provisional_league(store):
-    measurement = provisional_rate(store, ingest_fixtures(store))
+def test_the_same_ingest_without_seeding_leaves_every_club_provisional(store):
+    result = ingest_fixtures(store)
 
     # No seed: four provisional clubs, and no competition to attach at all.
-    assert (measurement.entities, measurement.provisional, measurement.rate) == (4, 4, 1.0)
-    assert json.loads(store.meta(PROVISIONAL_RATE_KEY))["rate"] == 1.0
+    assert _ingested_entities(store, result) == 4
+    assert len(store.review_queue()) == 4
 
 
-def test_a_measurement_can_be_taken_without_being_recorded(store):
-    seed_league(store, collect_standings(store))
-
-    measurement = provisional_rate(store, ingest_fixtures(store), key=None)
-
-    assert measurement.rate == 0.0
-    assert store.meta(PROVISIONAL_RATE_KEY) is None
+def _ingested_entities(store, result) -> int:
+    """How many distinct entities the ingested matches point at."""
+    entity_ids = set()
+    for match_id in result.match_ids:
+        row = store.match(match_id)
+        entity_ids.update(
+            row[column] for column in ("home_entity", "away_entity", "competition_id")
+            if row[column])
+    return len(entity_ids)

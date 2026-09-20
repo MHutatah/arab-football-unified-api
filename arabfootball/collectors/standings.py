@@ -12,6 +12,13 @@ Seeded entities are canonical, not provisional: a club listed in its own
 league's standings table is not a guess. The names already recorded for an
 entity are kept, though — a maintainer's correction survives a reseed, and the
 seed's own spelling is learned as an alias either way.
+
+Nothing calls `seed_league` yet outside the tests. The entry point it belongs
+in front of — `arabfootball.collectors.run`, which `make collect-saudi` already
+invokes — is not in the repo yet and no sprint item creates it, so there is
+nowhere to wire the ordering in. Whoever adds that module owns it: seed the
+league, then ingest fixtures (the sprint's own `{K-08,K-11}→K-09` sequencing).
+Until then a real run ingests unseeded and fills the review queue.
 """
 from __future__ import annotations
 
@@ -87,8 +94,13 @@ class StandingsCollector(Collector):
                 seen.add(provider_id)
                 records.append(record)
         # The table's own order, so a seed is deterministic and reads like the
-        # league table a maintainer is looking at.
-        records.sort(key=lambda record: record["position"] or len(records) + 1)
+        # league table a maintainer is looking at. A row the feed did not
+        # position goes last — and `last` is computed BEFORE the sort, because
+        # `list.sort` empties the list while it runs, which would otherwise
+        # make the fallback 1 and float those rows to the top.
+        last = len(records) + 1
+        records.sort(key=lambda record: last if record["position"] is None
+                     else record["position"])
         return records
 
     @staticmethod
@@ -134,7 +146,7 @@ def seed_league(store, clubs: Iterable[Mapping[str, Any]], *,
         name, provider_id = _club(club)
         entity_id, created, promoted = _seed(
             store, resolver, type="team", provider_id=provider_id,
-            names={f"name_{script_of(name)}": name}, country=league.country)
+            names=_named(name), country=league.country)
         result.team_ids.append(entity_id)
         result.created += created
         result.promoted += promoted
@@ -142,6 +154,18 @@ def seed_league(store, clubs: Iterable[Mapping[str, Any]], *,
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
+def _named(name: str) -> dict[str, str]:
+    """A club's one spelling, under the name column its script belongs in.
+
+    Both consumers of this take `name_ar`/`name_en` and nothing else, so the
+    column is chosen from an explicit pair rather than by interpolating a
+    script code into a keyword name: a future third script code would then be
+    a `TypeError` deep inside the resolver instead of an Arabic name landing
+    in `name_en`.
+    """
+    return {"name_ar" if script_of(name) == "ar" else "name_en": name}
+
+
 def _seed(store, resolver: Resolver, *, type: str, provider_id: str,
           names: Mapping[str, str], country: str) -> tuple[str, int, int]:
     resolution = resolver.resolve(type=type, provider=PROVIDER,

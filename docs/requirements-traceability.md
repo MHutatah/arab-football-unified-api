@@ -37,7 +37,7 @@ Requirement ids come from [`product/PRD.md`](./product/PRD.md); sprint task ids
 | Req | Requirement | Target | Verification | Status |
 |---|---|---|---|:--:|
 | NFR-identity | Namesake collisions in a published snapshot | **0** | Adversarial suite (`test_resolver.py`) + review queue audit | ✅ suite green |
-| NFR-provisional | Provisional entities after a full-league ingest | < 5 % | `ingest.py::provisional_rate` measures it and stamps it into `snapshot_meta`; seeding the league from `/standings` first drives it to 0 (`test_standings.py`) | 🟡 measured + recorded |
+| NFR-provisional | Provisional entities after a full-league ingest | < 5 % | Measured on the Saudi ingest (K-08/K-09) | ⬜ |
 | NFR-offline | Test suite makes zero network calls | always | CI (`ci.yml`); collectors use canned payloads | ✅ |
 | NFR-failsoft | Any single source down ⇒ pipeline still completes | always | Collector contract tests (K-07) | ⬜ |
 | NFR-portable | Snapshot opens with stdlib `sqlite3`, no extensions | always | Round-trip test (K-18) | ⬜ |
