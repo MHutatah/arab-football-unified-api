@@ -32,8 +32,10 @@ def _status_rank(status: str) -> int:
 
 
 class Store:
-    def __init__(self, path: str = ":memory:"):
-        self.conn = sqlite3.connect(path)
+    def __init__(self, path: str = ":memory:", *, check_same_thread: bool = True):
+        # The read API serves requests from a threadpool, so it opens the store
+        # with `check_same_thread=False`; writers keep the stricter default.
+        self.conn = sqlite3.connect(path, check_same_thread=check_same_thread)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
