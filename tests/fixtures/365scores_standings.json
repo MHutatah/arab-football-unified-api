@@ -1,0 +1,30 @@
+{
+  "lastUpdate": "2025-09-01T09:00:00+00:00",
+  "competitions": [{"id": 649, "name": "Saudi Pro League", "countryId": 76}],
+  "standings": [
+    {
+      "competitionId": 649,
+      "name": "Roshn Saudi League",
+      "rows": [
+        {"position": 1, "gamePlayed": 4, "points": 12, "competitor": {"id": 5457, "name": "Al Hilal", "symbolicName": "HIL"}},
+        {"position": 2, "gamePlayed": 4, "points": 10, "competitor": {"id": 5461, "name": "Al Nassr", "symbolicName": "NAS"}},
+        {"position": 3, "gamePlayed": 4, "points": 9, "competitor": {"id": 5460, "name": "Al Ittihad", "symbolicName": "ITT"}},
+        {"position": 4, "gamePlayed": 4, "points": 8, "competitor": {"id": 5462, "name": "Al Ahli", "symbolicName": "AHL"}},
+        {"position": 5, "gamePlayed": 4, "points": 8, "competitor": {"id": 5463, "name": "Al Qadsiah", "symbolicName": "QAD"}},
+        {"position": 6, "gamePlayed": 4, "points": 7, "competitor": {"id": 5464, "name": "Al Shabab", "symbolicName": "SHA"}},
+        {"position": 7, "gamePlayed": 4, "points": 7, "competitor": {"id": 5465, "name": "Al Taawoun", "symbolicName": "TAA"}},
+        {"position": 8, "gamePlayed": 4, "points": 6, "competitor": {"id": 5466, "name": "Al Fateh", "symbolicName": "FAT"}},
+        {"position": 9, "gamePlayed": 4, "points": 6, "competitor": {"id": 5467, "name": "Al Khaleej", "symbolicName": "KHA"}},
+        {"position": 10, "gamePlayed": 4, "points": 5, "competitor": {"id": 5468, "name": "Al Ettifaq", "symbolicName": "ETT"}},
+        {"position": 11, "gamePlayed": 4, "points": 5, "competitor": {"id": 5458, "name": "Al Riyadh", "symbolicName": "RIY"}},
+        {"position": 12, "gamePlayed": 4, "points": 4, "competitor": {"id": 5469, "name": "Al Fayha", "symbolicName": "FAY"}},
+        {"position": 13, "gamePlayed": 4, "points": 4, "competitor": {"id": 5470, "name": "Damac", "symbolicName": "DAM"}},
+        {"position": 14, "gamePlayed": 4, "points": 4, "competitor": {"id": 5471, "name": "Al Okhdood", "symbolicName": "OKH"}},
+        {"position": 15, "gamePlayed": 4, "points": 3, "competitor": {"id": 5472, "name": "Al Hazem", "symbolicName": "HAZ"}},
+        {"position": 16, "gamePlayed": 4, "points": 3, "competitor": {"id": 5473, "name": "Al Najma", "symbolicName": "NAJ"}},
+        {"position": 17, "gamePlayed": 4, "points": 2, "competitor": {"id": 5474, "name": "NEOM", "symbolicName": "NEO"}},
+        {"position": 18, "gamePlayed": 4, "points": 1, "competitor": {"id": 5475, "name": "Al Kholood", "symbolicName": "KHO"}}
+      ]
+    }
+  ]
+}

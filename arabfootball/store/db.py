@@ -89,9 +89,45 @@ class Store:
         self.conn.commit()
         return entity_id
 
+    def confirm_entity(self, entity_id: str, *, name_ar=None, name_en=None,
+                       country=None) -> bool:
+        """Promote an entity to canonical, filling in only what it lacked.
+
+        Seeding an entity that a feed already forced into existence is the
+        common case, so this never overwrites a name already recorded: a
+        maintainer's correction outranks any provider's spelling of it.
+        Returns whether the row changed.
+        """
+        existing = self.entity(entity_id)
+        if existing is None:
+            raise ValueError(f"unknown entity: {entity_id}")
+        merged = {
+            "name_ar": existing["name_ar"] or name_ar,
+            "name_en": existing["name_en"] or name_en,
+            "country": existing["country"] or country,
+            "provisional": 0,
+        }
+        if all(existing[column] == value for column, value in merged.items()):
+            return False
+        self.conn.execute(
+            "UPDATE entities SET name_ar=?,name_en=?,country=?,provisional=0 WHERE id=?",
+            (merged["name_ar"], merged["name_en"], merged["country"], entity_id))
+        self.conn.commit()
+        return True
+
     def add_alias(self, entity_id, provider, provider_id, name_variant, script) -> None:
         if not name_variant:
             return
+        if provider_id is None:
+            # SQLite treats NULLs as distinct in a UNIQUE index, so the table's
+            # own constraint cannot stop a name-only alias from being written
+            # again on every pass.
+            held = self.conn.execute(
+                "SELECT 1 FROM aliases WHERE entity_id=? AND provider=?"
+                " AND provider_id IS NULL AND name_variant=? LIMIT 1",
+                (entity_id, provider, name_variant)).fetchone()
+            if held:
+                return
         self.conn.execute(
             "INSERT OR IGNORE INTO aliases (entity_id,provider,provider_id,name_variant,script)"
             " VALUES (?,?,?,?,?)",
@@ -107,6 +143,18 @@ class Store:
         """Provisional entities awaiting a human decision — never hidden."""
         return [dict(r) for r in self.conn.execute(
             "SELECT * FROM entities WHERE provisional=1 ORDER BY created_at")]
+
+    def meta(self, key: str) -> str | None:
+        """A value stamped into `snapshot_meta` — what this store holds."""
+        row = self.conn.execute(
+            "SELECT value FROM snapshot_meta WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else None
+
+    def set_meta(self, key: str, value: str) -> None:
+        self.conn.execute(
+            "INSERT INTO snapshot_meta (key,value) VALUES (?,?)"
+            " ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, str(value)))
+        self.conn.commit()
 
     # ── archive writes ──────────────────────────────────────────────────────
     def match(self, match_id: str) -> dict | None:

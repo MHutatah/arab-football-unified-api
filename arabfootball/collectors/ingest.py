@@ -7,14 +7,23 @@ stale can add to a match, never subtract from it.
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 from arabfootball.resolve.normalize import script_of
 from arabfootball.resolve.resolver import Resolver
 
 NAME_KEYS = ("name", "name_ar", "name_en")
+
+# `snapshot_meta` key the latest provisional-rate measurement is stamped under.
+PROVISIONAL_RATE_KEY = "provisional_rate"
+
+# The entity columns an ingested match points at; each one is a resolution that
+# either found a real entity or fell back to a provisional.
+MATCH_ENTITY_COLUMNS = ("home_entity", "away_entity", "competition_id")
 
 
 @dataclass
@@ -46,6 +55,49 @@ def ingest(store, records: Iterable[Mapping[str, Any]], *, country: str | None =
             result.unchanged += 1
         result.match_ids.append(match_id)
     return result
+
+
+@dataclass
+class ProvisionalRate:
+    """How much of an ingest the resolver refused to attribute to a real entity."""
+
+    matches: int
+    entities: int
+    provisional: int
+    rate: float
+    measured_at: str
+
+
+def provisional_rate(store, result: IngestResult | Iterable[str], *,
+                     key: str | None = PROVISIONAL_RATE_KEY) -> ProvisionalRate:
+    """Measure the share of an ingest's entities that are provisional, and record it.
+
+    This is the number that says whether seeding worked: ingesting a seeded
+    league should attribute every club to a canonical entity and measure 0,
+    while an unseeded one measures 1 and puts the whole league in the review
+    queue. The measurement is stamped into `snapshot_meta`, so a snapshot
+    carries its own identity-quality figure rather than leaving a consumer to
+    guess at it.
+    """
+    match_ids = result.match_ids if isinstance(result, IngestResult) else list(result)
+    entity_ids: set[str] = set()
+    for match_id in match_ids:
+        row = store.match(match_id)
+        if row is None:
+            continue
+        entity_ids.update(row[column] for column in MATCH_ENTITY_COLUMNS if row[column])
+    provisional = sum(
+        1 for entity_id in entity_ids if (store.entity(entity_id) or {}).get("provisional"))
+    measurement = ProvisionalRate(
+        matches=len(match_ids),
+        entities=len(entity_ids),
+        provisional=provisional,
+        rate=provisional / len(entity_ids) if entity_ids else 0.0,
+        measured_at=datetime.now(UTC).isoformat(timespec="seconds"),
+    )
+    if key:
+        store.set_meta(key, json.dumps(asdict(measurement), ensure_ascii=False))
+    return measurement
 
 
 def _ingest_one(store, resolver: Resolver, record: Mapping[str, Any],
