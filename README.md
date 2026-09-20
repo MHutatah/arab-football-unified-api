@@ -23,6 +23,21 @@ make serve          # read API on :8100  — or just open the .db yourself
 | **Live** | Fixtures, results, form, head-to-head, odds |
 | **Enriched** | Typed facts (transfers, injuries, suspensions) extracted from Arabic + English news |
 
+## Read API
+
+`make serve` starts the bundled read server on `:8100` against your snapshot —
+no keys, no configuration, every answer computed from the local file.
+
+| Endpoint | Answers |
+|---|---|
+| `GET /v1/search?q=&type=&country=` | a name in **either script** → canonical entities |
+| `GET /v1/teams/{id}` | club profile + form derived from the match archive |
+| `GET /v1/matches?competition=&from=&to=` | the archive, filtered by competition and date window |
+| `GET /v1/h2h?a=&b=` | past meetings + the W/D/L record, derived |
+
+Interactive docs at `/docs`. Every entity comes back with both `name_ar` and
+`name_en`; an unknown id is a `404` that says what it is.
+
 ## Why it exists
 
 Every existing feed fails on Arab football. The Saudi Pro League returns zero
